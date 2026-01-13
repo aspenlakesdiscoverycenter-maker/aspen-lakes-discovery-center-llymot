@@ -4,6 +4,8 @@ import * as authSchema from './db/auth-schema.js';
 import { registerParentRoutes } from './routes/parent.js';
 import { registerStaffRoutes } from './routes/staff.js';
 import { registerTimeOffRoutes } from './routes/timeoff.js';
+import { registerProfileRoutes } from './routes/profiles.js';
+import { registerFormRoutes } from './routes/forms.js';
 
 // Combine schemas
 const schema = { ...appSchema, ...authSchema };
@@ -22,6 +24,8 @@ app.withAuth();
 registerParentRoutes(app);
 registerStaffRoutes(app);
 registerTimeOffRoutes(app);
+registerProfileRoutes(app);
+registerFormRoutes(app);
 
 await app.run();
 app.logger.info('Application running');

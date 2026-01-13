@@ -59,8 +59,17 @@ export const children = pgTable(
     firstName: text('first_name').notNull(),
     lastName: text('last_name').notNull(),
     dateOfBirth: timestamp('date_of_birth').notNull(),
+    // Address Information
+    street: text('street'),
+    city: text('city'),
+    province: text('province'),
+    postalCode: text('postal_code'),
+    // Health Information
     allergies: text('allergies'),
+    generalHealth: text('general_health'),
     medicalNotes: text('medical_notes'),
+    albertaHealthcareNumber: text('alberta_healthcare_number'),
+    // Emergency and Family
     emergencyContacts: jsonb('emergency_contacts'),
     parentNotes: text('parent_notes'),
     enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
@@ -70,7 +79,10 @@ export const children = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index('children_first_name_idx').on(table.firstName)]
+  (table) => [
+    index('children_first_name_idx').on(table.firstName),
+    index('children_last_name_idx').on(table.lastName),
+  ]
 );
 
 /**
