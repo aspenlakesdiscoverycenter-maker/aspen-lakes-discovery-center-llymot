@@ -144,12 +144,18 @@ export const dailyReports = pgTable(
     childId: uuid('child_id').notNull().references(() => children.id, { onDelete: 'cascade' }),
     staffId: text('staff_id').notNull(), // References user.id
     date: timestamp('date').notNull(),
-    mealsTaken: jsonb('meals_taken'), // Array of meals eaten
-    napTime: jsonb('nap_time'), // { startTime, endTime, quality }
+    // Meals with descriptions
+    mealsTaken: jsonb('meals_taken'), // { breakfast, lunch, snack, dinner } with descriptions
+    napTime: jsonb('nap_time'), // { startTime, endTime, duration }
     activities: text('activities'), // Description of activities done
     mood: text('mood', { enum: ['happy', 'good', 'neutral', 'fussy', 'upset'] }),
     notes: text('notes'),
-    photos: jsonb('photos'), // Array of photo URLs
+    // Media
+    photos: jsonb('photos'), // Array of { url, filename, uploadedAt }
+    videos: jsonb('videos'), // Array of { url, filename, uploadedAt }
+    // Medications and Incidents
+    medications: jsonb('medications'), // Array of medication reports
+    incidents: jsonb('incidents'), // Array of incident reports
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -160,6 +166,59 @@ export const dailyReports = pgTable(
     index('daily_reports_child_id_idx').on(table.childId),
     index('daily_reports_date_idx').on(table.date),
     index('daily_reports_staff_id_idx').on(table.staffId),
+  ]
+);
+
+/**
+ * REPORT_REACTIONS TABLE
+ * Parents' reactions (heart, thumbs_up, smile, love) to daily reports
+ */
+export const reportReactions = pgTable(
+  'report_reactions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    reportId: uuid('report_id')
+      .notNull()
+      .references(() => dailyReports.id, { onDelete: 'cascade' }),
+    parentId: text('parent_id').notNull(), // References user.id
+    reactionType: text('reaction_type', {
+      enum: ['heart', 'thumbs_up', 'smile', 'love'],
+    }).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('report_reactions_report_id_idx').on(table.reportId),
+    index('report_reactions_parent_id_idx').on(table.parentId),
+    uniqueIndex('report_reactions_unique_idx').on(table.reportId, table.parentId),
+  ]
+);
+
+/**
+ * REPORT_COMMENTS TABLE
+ * Parents' comments on daily reports
+ */
+export const reportComments = pgTable(
+  'report_comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    reportId: uuid('report_id')
+      .notNull()
+      .references(() => dailyReports.id, { onDelete: 'cascade' }),
+    parentId: text('parent_id').notNull(), // References user.id
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('report_comments_report_id_idx').on(table.reportId),
+    index('report_comments_parent_id_idx').on(table.parentId),
   ]
 );
 
@@ -490,10 +549,26 @@ export const attendanceRelations = relations(attendance, ({ one }) => ({
   }),
 }));
 
-export const dailyReportsRelations = relations(dailyReports, ({ one }) => ({
+export const dailyReportsRelations = relations(dailyReports, ({ one, many }) => ({
   child: one(children, {
     fields: [dailyReports.childId],
     references: [children.id],
+  }),
+  reactions: many(reportReactions),
+  comments: many(reportComments),
+}));
+
+export const reportReactionsRelations = relations(reportReactions, ({ one }) => ({
+  report: one(dailyReports, {
+    fields: [reportReactions.reportId],
+    references: [dailyReports.id],
+  }),
+}));
+
+export const reportCommentsRelations = relations(reportComments, ({ one }) => ({
+  report: one(dailyReports, {
+    fields: [reportComments.reportId],
+    references: [dailyReports.id],
   }),
 }));
 

@@ -7,6 +7,7 @@ import { registerTimeOffRoutes } from './routes/timeoff.js';
 import { registerProfileRoutes } from './routes/profiles.js';
 import { registerFormRoutes } from './routes/forms.js';
 import { registerDailyReportRoutes } from './routes/dailyreports.js';
+import { registerEnhancedDailyReportRoutes } from './routes/dailyreports-enhanced.js';
 
 // Combine schemas
 const schema = { ...appSchema, ...authSchema };
@@ -28,6 +29,7 @@ registerTimeOffRoutes(app);
 registerProfileRoutes(app);
 registerFormRoutes(app);
 registerDailyReportRoutes(app);
+registerEnhancedDailyReportRoutes(app);
 
 await app.run();
 app.logger.info('Application running');
