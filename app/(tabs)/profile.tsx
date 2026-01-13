@@ -25,57 +25,83 @@ export default function ProfileScreen() {
 
   const handleGenerateTestData = async () => {
     console.log('[ProfileScreen] Generate test data button pressed');
-    Alert.alert(
-      'Generate Test Data',
-      'This will create sample children, classrooms, and staff members so you can test the app features. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Generate',
-          onPress: async () => {
-            try {
-              setGeneratingData(true);
-              console.log('[ProfileScreen] Generating test data...');
-              const response = await authenticatedPost<{ success: boolean; message: string }>('/api/test-data/generate', {
-                childrenCount: 20,
-                staffCount: 8
-              });
-              console.log('[ProfileScreen] Test data generated:', response);
-              Alert.alert('Success', response.message || 'Test data generated successfully! Check the Children, Classrooms, and Attendance tabs.');
-            } catch (error) {
-              console.error('[ProfileScreen] Error generating test data:', error);
-              Alert.alert('Error', 'Failed to generate test data. Please try again.');
-            } finally {
-              setGeneratingData(false);
-            }
-          },
-        },
-      ]
-    );
+    
+    if (generatingData) {
+      console.log('[ProfileScreen] Already generating data, ignoring press');
+      return;
+    }
+
+    try {
+      setGeneratingData(true);
+      console.log('[ProfileScreen] Starting test data generation...');
+      
+      const response = await authenticatedPost<{ success: boolean; message: string }>('/api/test-data/generate', {
+        childrenCount: 20,
+        staffCount: 8
+      });
+      
+      console.log('[ProfileScreen] Test data generated successfully:', response);
+      Alert.alert(
+        'Success!', 
+        response.message || 'Test data generated successfully! Check the Children, Classrooms, and Attendance tabs.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('[ProfileScreen] Error generating test data:', error);
+      Alert.alert(
+        'Error', 
+        'Failed to generate test data. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setGeneratingData(false);
+      console.log('[ProfileScreen] Test data generation complete');
+    }
   };
 
   const handleClearTestData = async () => {
     console.log('[ProfileScreen] Clear test data button pressed');
+    
+    if (clearingData) {
+      console.log('[ProfileScreen] Already clearing data, ignoring press');
+      return;
+    }
+
     Alert.alert(
       'Clear Test Data',
-      'This will delete all children, classrooms, and staff profiles. Your account will remain intact. Continue?',
+      'This will delete all test children, classrooms, and staff profiles. Your account will remain intact. Continue?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Cancel', 
+          style: 'cancel',
+          onPress: () => console.log('[ProfileScreen] Clear cancelled')
+        },
         {
           text: 'Clear',
           style: 'destructive',
           onPress: async () => {
             try {
               setClearingData(true);
-              console.log('[ProfileScreen] Clearing test data...');
+              console.log('[ProfileScreen] Starting test data clearing...');
+              
               const response = await authenticatedPost<{ success: boolean; message: string }>('/api/test-data/clear', {});
-              console.log('[ProfileScreen] Test data cleared:', response);
-              Alert.alert('Success', response.message || 'Test data cleared successfully!');
+              
+              console.log('[ProfileScreen] Test data cleared successfully:', response);
+              Alert.alert(
+                'Success!', 
+                response.message || 'Test data cleared successfully!',
+                [{ text: 'OK' }]
+              );
             } catch (error) {
               console.error('[ProfileScreen] Error clearing test data:', error);
-              Alert.alert('Error', 'Failed to clear test data. Please try again.');
+              Alert.alert(
+                'Error', 
+                'Failed to clear test data. Please try again.',
+                [{ text: 'OK' }]
+              );
             } finally {
               setClearingData(false);
+              console.log('[ProfileScreen] Test data clearing complete');
             }
           },
         },
@@ -137,9 +163,16 @@ export default function ProfileScreen() {
                   color={colors.primary} 
                 />
               )}
-              <Text style={styles.menuItemText}>
-                {generatingData ? 'Generating...' : 'Generate Test Data'}
-              </Text>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.menuItemText}>
+                  {generatingData ? 'Generating Test Data...' : 'Generate Test Data'}
+                </Text>
+                {generatingData && (
+                  <Text style={styles.menuItemSubtext}>
+                    Creating 20 children, 8 staff, and classrooms...
+                  </Text>
+                )}
+              </View>
               {!generatingData && (
                 <IconSymbol 
                   ios_icon_name="chevron.right" 
@@ -170,9 +203,16 @@ export default function ProfileScreen() {
                   color="#E74C3C" 
                 />
               )}
-              <Text style={[styles.menuItemText, { color: '#E74C3C' }]}>
-                {clearingData ? 'Clearing...' : 'Clear Test Data'}
-              </Text>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.menuItemText, { color: '#E74C3C' }]}>
+                  {clearingData ? 'Clearing Test Data...' : 'Clear Test Data'}
+                </Text>
+                {clearingData && (
+                  <Text style={[styles.menuItemSubtext, { color: '#E74C3C' }]}>
+                    Removing all test data...
+                  </Text>
+                )}
+              </View>
               {!clearingData && (
                 <IconSymbol 
                   ios_icon_name="chevron.right" 
@@ -417,11 +457,14 @@ const styles = StyleSheet.create({
     minHeight: 60,
   },
   menuItemText: {
-    flex: 1,
     fontSize: 16,
     color: colors.text,
-    marginLeft: 12,
     fontWeight: '500',
+  },
+  menuItemSubtext: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   testDataButton: {
     borderColor: colors.primary,
