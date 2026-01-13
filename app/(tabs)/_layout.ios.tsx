@@ -13,6 +13,24 @@ export default function TabLayout() {
       label: 'Home',
     },
     {
+      name: 'children',
+      route: '/(tabs)/children',
+      icon: 'child-care',
+      label: 'Children',
+    },
+    {
+      name: 'daily-reports',
+      route: '/(tabs)/daily-reports',
+      icon: 'assignment',
+      label: 'Reports',
+    },
+    {
+      name: 'forms',
+      route: '/(tabs)/forms',
+      icon: 'description',
+      label: 'Forms',
+    },
+    {
       name: 'time-off',
       route: '/(tabs)/time-off',
       icon: 'event-available',
@@ -35,6 +53,9 @@ export default function TabLayout() {
         }}
       >
         <Stack.Screen key="home" name="(home)" />
+        <Stack.Screen key="children" name="children" />
+        <Stack.Screen key="daily-reports" name="daily-reports" />
+        <Stack.Screen key="forms" name="forms" />
         <Stack.Screen key="time-off" name="time-off" />
         <Stack.Screen key="profile" name="profile" />
       </Stack>
