@@ -103,7 +103,7 @@ export default function ChildrenScreen() {
   };
 
   const handleAddChild = async () => {
-    console.log('[ChildrenScreen] Add child button pressed');
+    console.log('[ChildrenScreen] handleAddChild called');
     console.log('[ChildrenScreen] Form data:', formData);
     
     if (!formData.firstName?.trim()) {
@@ -159,7 +159,7 @@ export default function ChildrenScreen() {
   const handleUpdateChild = async () => {
     if (!selectedChild) return;
 
-    console.log('[ChildrenScreen] Update child button pressed');
+    console.log('[ChildrenScreen] handleUpdateChild called');
     console.log('[ChildrenScreen] Form data:', formData);
 
     try {
@@ -225,6 +225,7 @@ export default function ChildrenScreen() {
   };
 
   const resetForm = () => {
+    console.log('[ChildrenScreen] Resetting form');
     setFormData({
       firstName: '',
       lastName: '',
@@ -243,6 +244,8 @@ export default function ChildrenScreen() {
   };
 
   const openEditModal = (child: Child) => {
+    console.log('[ChildrenScreen] Opening edit modal for child:', child.id);
+    setSelectedChild(child);
     setFormData({
       firstName: child.firstName,
       lastName: child.lastName,
@@ -283,10 +286,35 @@ export default function ChildrenScreen() {
   const handleDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
+      console.log('[ChildrenScreen] Date changed:', selectedDate);
       setFormData({
         ...formData,
         dateOfBirth: selectedDate.toISOString(),
       });
+    }
+  };
+
+  const handleOpenAddModal = () => {
+    console.log('[ChildrenScreen] Opening add modal');
+    resetForm();
+    setShowAddModal(true);
+  };
+
+  const handleCloseModal = () => {
+    console.log('[ChildrenScreen] Closing modal');
+    if (!saving) {
+      setShowAddModal(false);
+      setShowEditModal(false);
+      resetForm();
+    }
+  };
+
+  const handleSavePress = () => {
+    console.log('[ChildrenScreen] Save button pressed, showAddModal:', showAddModal, 'showEditModal:', showEditModal);
+    if (showAddModal) {
+      handleAddChild();
+    } else if (showEditModal) {
+      handleUpdateChild();
     }
   };
 
@@ -319,8 +347,11 @@ export default function ChildrenScreen() {
       <Text style={styles.inputLabel}>Date of Birth *</Text>
       <TouchableOpacity
         style={styles.dateButton}
-        onPress={() => setShowDatePicker(true)}
-        activeOpacity={0.6}
+        onPress={() => {
+          console.log('[ChildrenScreen] Date picker button pressed');
+          setShowDatePicker(true);
+        }}
+        activeOpacity={0.7}
         disabled={saving}
       >
         <Text style={styles.dateButtonText}>
@@ -331,8 +362,11 @@ export default function ChildrenScreen() {
 
       <TouchableOpacity
         style={styles.checkboxRow}
-        onPress={() => setFormData({ ...formData, isKindergarten: !formData.isKindergarten })}
-        activeOpacity={0.6}
+        onPress={() => {
+          console.log('[ChildrenScreen] Checkbox pressed, current value:', formData.isKindergarten);
+          setFormData({ ...formData, isKindergarten: !formData.isKindergarten });
+        }}
+        activeOpacity={0.7}
         disabled={saving}
       >
         <View style={[styles.checkbox, formData.isKindergarten && styles.checkboxChecked]}>
@@ -444,30 +478,16 @@ export default function ChildrenScreen() {
       <View style={styles.modalButtons}>
         <TouchableOpacity
           style={[styles.modalButton, styles.cancelButton]}
-          onPress={() => {
-            console.log('[ChildrenScreen] Cancel button pressed');
-            if (!saving) {
-              setShowAddModal(false);
-              setShowEditModal(false);
-              resetForm();
-            }
-          }}
-          activeOpacity={0.6}
+          onPress={handleCloseModal}
+          activeOpacity={0.7}
           disabled={saving}
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.modalButton, styles.saveButton, saving && styles.buttonDisabled]}
-          onPress={() => {
-            console.log('[ChildrenScreen] Save button pressed');
-            if (showAddModal) {
-              handleAddChild();
-            } else {
-              handleUpdateChild();
-            }
-          }}
-          activeOpacity={0.6}
+          onPress={handleSavePress}
+          activeOpacity={0.7}
           disabled={saving}
         >
           {saving ? (
@@ -503,8 +523,11 @@ export default function ChildrenScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => setSelectedChild(null)}
-            activeOpacity={0.6}
+            onPress={() => {
+              console.log('[ChildrenScreen] Back button pressed');
+              setSelectedChild(null);
+            }}
+            activeOpacity={0.7}
           >
             <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow-back" size={24} color={colors.primary} />
             <Text style={styles.backButtonText}>Back</Text>
@@ -512,7 +535,7 @@ export default function ChildrenScreen() {
           <TouchableOpacity
             style={styles.editButton}
             onPress={() => openEditModal(selectedChild)}
-            activeOpacity={0.6}
+            activeOpacity={0.7}
           >
             <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.primary} />
           </TouchableOpacity>
@@ -630,13 +653,33 @@ export default function ChildrenScreen() {
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={() => handleDeleteChild(selectedChild.id)}
-              activeOpacity={0.6}
+              activeOpacity={0.7}
             >
               <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color={colors.card} />
               <Text style={styles.deleteButtonText}>Delete Profile</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        <Modal
+          visible={showEditModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={handleCloseModal}
+        >
+          <View style={styles.modalContainer}>
+            {renderChildForm()}
+          </View>
+        </Modal>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={new Date(formData.dateOfBirth || new Date())}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+          />
+        )}
       </View>
     );
   }
@@ -654,12 +697,8 @@ export default function ChildrenScreen() {
         </View>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => {
-            console.log('[ChildrenScreen] Add button pressed');
-            resetForm();
-            setShowAddModal(true);
-          }}
-          activeOpacity={0.6}
+          onPress={handleOpenAddModal}
+          activeOpacity={0.7}
         >
           <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={24} color={colors.card} />
         </TouchableOpacity>
@@ -681,7 +720,7 @@ export default function ChildrenScreen() {
                   console.log('[ChildrenScreen] Child card pressed:', child.id);
                   loadChildDetails(child.id);
                 }}
-                activeOpacity={0.6}
+                activeOpacity={0.7}
               >
                 <View style={styles.childCardContent}>
                   <IconSymbol 
@@ -730,16 +769,10 @@ export default function ChildrenScreen() {
       </ScrollView>
 
       <Modal
-        visible={showAddModal || showEditModal}
+        visible={showAddModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => {
-          if (!saving) {
-            setShowAddModal(false);
-            setShowEditModal(false);
-            resetForm();
-          }
-        }}
+        onRequestClose={handleCloseModal}
       >
         <View style={styles.modalContainer}>
           {renderChildForm()}
