@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { authenticatedPost, authenticatedDelete } from '@/utils/api';
+import { authenticatedPost } from '@/utils/api';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -29,7 +29,10 @@ export default function ProfileScreen() {
             try {
               setGeneratingData(true);
               console.log('[ProfileScreen] Generating test data...');
-              const response = await authenticatedPost<{ success: boolean; message: string }>('/api/test-data/generate', {});
+              const response = await authenticatedPost<{ success: boolean; message: string }>('/api/test-data/generate', {
+                childrenCount: 20,
+                staffCount: 8
+              });
               console.log('[ProfileScreen] Test data generated:', response);
               Alert.alert('Success', response.message || 'Test data generated successfully! Check the Children, Classrooms, and Attendance tabs.');
             } catch (error) {
@@ -57,7 +60,8 @@ export default function ProfileScreen() {
             try {
               setClearingData(true);
               console.log('[ProfileScreen] Clearing test data...');
-              const response = await authenticatedDelete<{ success: boolean; message: string }>('/api/test-data/clear');
+              // The backend endpoint is POST, not DELETE
+              const response = await authenticatedPost<{ success: boolean; message: string }>('/api/test-data/clear', {});
               console.log('[ProfileScreen] Test data cleared:', response);
               Alert.alert('Success', response.message || 'Test data cleared successfully!');
             } catch (error) {
