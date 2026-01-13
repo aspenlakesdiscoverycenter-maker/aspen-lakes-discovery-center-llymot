@@ -64,8 +64,9 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Determine user role from user object
-  const userRole = user?.role || 'parent';
+  // TEMPORARILY HARDCODED TO SHOW STAFF VIEW
+  // Change this to 'parent' to see parent view
+  const userRole = 'staff';
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -217,7 +218,9 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Aspen Lakes Discovery Center</Text>
-          <Text style={styles.headerSubtitle}>Welcome, {user.name || user.email}!</Text>
+          <Text style={styles.headerSubtitle}>
+            {userRole === 'staff' ? 'Staff Dashboard' : `Welcome, ${user.name || user.email}!`}
+          </Text>
         </View>
       </View>
 
@@ -391,6 +394,40 @@ export default function HomeScreen() {
                 <Text style={styles.emptyText}>No schedules for today</Text>
               )}
             </View>
+
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <IconSymbol 
+                  ios_icon_name="person.3.fill" 
+                  android_material_icon_name="group" 
+                  size={24} 
+                  color={colors.primary} 
+                />
+                <Text style={styles.sectionTitle}>Staff Directory</Text>
+              </View>
+              {staffList.length > 0 ? (
+                staffList.map((staff, index) => (
+                  <View key={index} style={styles.card}>
+                    <View style={styles.staffCard}>
+                      <IconSymbol 
+                        ios_icon_name="person.circle.fill" 
+                        android_material_icon_name="account-circle" 
+                        size={40} 
+                        color={colors.secondary} 
+                      />
+                      <View style={styles.staffInfo}>
+                        <Text style={styles.staffName}>
+                          {staff.firstName} {staff.lastName}
+                        </Text>
+                        <Text style={styles.staffRole}>{staff.role}</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.emptyText}>No staff members found</Text>
+              )}
+            </View>
           </View>
         )}
       </ScrollView>
@@ -549,6 +586,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.text,
+  },
+  staffCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  staffInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  staffRole: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   emptyText: {
     fontSize: 14,
