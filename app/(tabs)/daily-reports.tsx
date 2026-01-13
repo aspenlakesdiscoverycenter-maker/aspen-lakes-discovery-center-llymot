@@ -6,11 +6,51 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { authenticatedGet, authenticatedPost, authenticatedPut, authenticatedDelete } from '@/utils/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
 
 interface Child {
   id: string;
   firstName: string;
   lastName: string;
+}
+
+interface MediaItem {
+  url: string;
+  uploadedAt: string;
+}
+
+interface MedicationReport {
+  medicationName: string;
+  dosage: string;
+  time: string;
+  administeredBy: string;
+  notes: string;
+}
+
+interface IncidentReport {
+  type: string;
+  description: string;
+  time: string;
+  actionTaken: string;
+  reportedBy: string;
+  severity: string;
+}
+
+interface Reaction {
+  id: string;
+  parentId: string;
+  parentName: string;
+  reactionType: string;
+  createdAt: string;
+}
+
+interface Comment {
+  id: string;
+  parentId: string;
+  parentName: string;
+  comment: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface DailyReport {
@@ -24,6 +64,12 @@ interface DailyReport {
     snack?: string;
     dinner?: string;
   };
+  mealDescriptions?: {
+    breakfast?: string;
+    lunch?: string;
+    snack?: string;
+    dinner?: string;
+  };
   napTime?: {
     startTime?: string;
     endTime?: string;
@@ -32,12 +78,20 @@ interface DailyReport {
   activities?: string;
   mood?: string;
   notes?: string;
-  photos?: string[];
+  photos?: MediaItem[];
+  videos?: MediaItem[];
+  medicationReport?: MedicationReport;
+  incidentReport?: IncidentReport;
+  reactions?: Reaction[];
+  comments?: Comment[];
   createdAt: string;
 }
 
 const MOOD_OPTIONS = ['happy', 'sad', 'tired', 'energetic', 'fussy', 'calm'];
 const MEAL_OPTIONS = ['ate all', 'ate most', 'ate half', 'ate some', 'ate little', 'did not eat'];
+const REACTION_TYPES = ['heart', 'thumbs_up', 'smile', 'love'];
+const INCIDENT_TYPES = ['minor injury', 'illness', 'behavior', 'accident', 'other'];
+const SEVERITY_LEVELS = ['low', 'medium', 'high'];
 
 export default function DailyReportsScreen() {
   const { user } = useAuth();
@@ -50,7 +104,10 @@ export default function DailyReportsScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [timePickerField, setTimePickerField] = useState<'napStart' | 'napEnd' | null>(null);
+  const [timePickerField, setTimePickerField] = useState<'napStart' | 'napEnd' | 'medicationTime' | 'incidentTime' | null>(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [commentText, setCommentText] = useState('');
 
   // TEMPORARILY HARDCODED TO SHOW STAFF VIEW
   const userRole = 'staff';
@@ -65,6 +122,12 @@ export default function DailyReportsScreen() {
       snack?: string;
       dinner?: string;
     };
+    mealDescriptions: {
+      breakfast?: string;
+      lunch?: string;
+      snack?: string;
+      dinner?: string;
+    };
     napTime: {
       startTime?: string;
       endTime?: string;
@@ -73,14 +136,21 @@ export default function DailyReportsScreen() {
     activities: string;
     mood: string;
     notes: string;
+    photos: MediaItem[];
+    videos: MediaItem[];
+    medicationReport?: MedicationReport;
+    incidentReport?: IncidentReport;
   }>({
     childId: '',
     date: new Date().toISOString(),
     mealsTaken: {},
+    mealDescriptions: {},
     napTime: {},
     activities: '',
     mood: 'happy',
     notes: '',
+    photos: [],
+    videos: [],
   });
 
   useEffect(() => {
@@ -110,7 +180,6 @@ export default function DailyReportsScreen() {
       console.log('[DailyReports] Reports loaded:', reportsData);
       setReports(reportsData);
 
-      // Load children list for creating new reports
       const childrenData = await authenticatedGet<Child[]>('/api/profiles/children');
       console.log('[DailyReports] Children loaded:', childrenData);
       setChildren(childrenData);
@@ -130,6 +199,134 @@ export default function DailyReportsScreen() {
       console.error('[DailyReports] Error loading parent data:', error);
       throw error;
     }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please grant camera roll permissions to upload photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      await uploadPhoto(result.assets[0].uri);
+    }
+  };
+
+  const pickVideo = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please grant camera roll permissions to upload videos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      await uploadVideo(result.assets[0].uri);
+    }
+  };
+
+  const uploadPhoto = async (uri: string) => {
+    setUploadingMedia(true);
+    try {
+      const formData = new FormData();
+      const filename = uri.split('/').pop() || 'photo.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+      formData.append('photo', {
+        uri,
+        name: filename,
+        type,
+      } as any);
+
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/upload/report-photo`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      setFormData({
+        ...formData,
+        photos: [...formData.photos, { url: data.url, uploadedAt: data.uploadedAt }],
+      });
+      Alert.alert('Success', 'Photo uploaded successfully!');
+    } catch (error) {
+      console.error('[DailyReports] Error uploading photo:', error);
+      Alert.alert('Error', 'Failed to upload photo. Please try again.');
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  const uploadVideo = async (uri: string) => {
+    setUploadingMedia(true);
+    try {
+      const formDataToUpload = new FormData();
+      const filename = uri.split('/').pop() || 'video.mp4';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `video/${match[1]}` : 'video/mp4';
+
+      formDataToUpload.append('video', {
+        uri,
+        name: filename,
+        type,
+      } as any);
+
+      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/upload/report-video`, {
+        method: 'POST',
+        body: formDataToUpload,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      setFormData({
+        ...formData,
+        videos: [...formData.videos, { url: data.url, uploadedAt: data.uploadedAt }],
+      });
+      Alert.alert('Success', 'Video uploaded successfully!');
+    } catch (error) {
+      console.error('[DailyReports] Error uploading video:', error);
+      Alert.alert('Error', 'Failed to upload video. Please try again.');
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    const newPhotos = [...formData.photos];
+    newPhotos.splice(index, 1);
+    setFormData({ ...formData, photos: newPhotos });
+  };
+
+  const removeVideo = (index: number) => {
+    const newVideos = [...formData.videos];
+    newVideos.splice(index, 1);
+    setFormData({ ...formData, videos: newVideos });
   };
 
   const handleCreateReport = async () => {
@@ -158,10 +355,15 @@ export default function DailyReportsScreen() {
       console.log('[DailyReports] Updating report:', selectedReport.id, formData);
       await authenticatedPut(`/api/staff/daily-reports/${selectedReport.id}`, {
         mealsTaken: formData.mealsTaken,
+        mealDescriptions: formData.mealDescriptions,
         napTime: formData.napTime,
         activities: formData.activities,
         mood: formData.mood,
         notes: formData.notes,
+        photos: formData.photos,
+        videos: formData.videos,
+        medicationReport: formData.medicationReport,
+        incidentReport: formData.incidentReport,
       });
       Alert.alert('Success', 'Daily report updated successfully!');
       setShowEditModal(false);
@@ -199,15 +401,57 @@ export default function DailyReportsScreen() {
     );
   };
 
+  const handleReaction = async (reportId: string, reactionType: string) => {
+    try {
+      await authenticatedPost(`/api/parent/daily-reports/${reportId}/reactions`, { reactionType });
+      loadData();
+    } catch (error) {
+      console.error('[DailyReports] Error adding reaction:', error);
+      Alert.alert('Error', 'Failed to add reaction.');
+    }
+  };
+
+  const handleRemoveReaction = async (reportId: string) => {
+    try {
+      await authenticatedDelete(`/api/parent/daily-reports/${reportId}/reactions`);
+      loadData();
+    } catch (error) {
+      console.error('[DailyReports] Error removing reaction:', error);
+      Alert.alert('Error', 'Failed to remove reaction.');
+    }
+  };
+
+  const handleAddComment = async (reportId: string) => {
+    if (!commentText.trim()) {
+      Alert.alert('Error', 'Please enter a comment.');
+      return;
+    }
+
+    try {
+      await authenticatedPost(`/api/parent/daily-reports/${reportId}/comments`, { comment: commentText });
+      setCommentText('');
+      setShowCommentModal(false);
+      setSelectedReport(null);
+      loadData();
+      Alert.alert('Success', 'Comment added!');
+    } catch (error) {
+      console.error('[DailyReports] Error adding comment:', error);
+      Alert.alert('Error', 'Failed to add comment.');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       childId: '',
       date: new Date().toISOString(),
       mealsTaken: {},
+      mealDescriptions: {},
       napTime: {},
       activities: '',
       mood: 'happy',
       notes: '',
+      photos: [],
+      videos: [],
     });
   };
 
@@ -216,10 +460,15 @@ export default function DailyReportsScreen() {
       childId: report.childId,
       date: report.date,
       mealsTaken: report.mealsTaken || {},
+      mealDescriptions: report.mealDescriptions || {},
       napTime: report.napTime || {},
       activities: report.activities || '',
       mood: report.mood || 'happy',
       notes: report.notes || '',
+      photos: report.photos || [],
+      videos: report.videos || [],
+      medicationReport: report.medicationReport,
+      incidentReport: report.incidentReport,
     });
     setSelectedReport(report);
     setShowEditModal(true);
@@ -290,8 +539,34 @@ export default function DailyReportsScreen() {
             endTime: timeString,
           },
         });
+      } else if (timePickerField === 'medicationTime') {
+        setFormData({
+          ...formData,
+          medicationReport: {
+            ...formData.medicationReport!,
+            time: timeString,
+          },
+        });
+      } else if (timePickerField === 'incidentTime') {
+        setFormData({
+          ...formData,
+          incidentReport: {
+            ...formData.incidentReport!,
+            time: timeString,
+          },
+        });
       }
       setTimePickerField(null);
+    }
+  };
+
+  const getReactionIcon = (type: string) => {
+    switch (type) {
+      case 'heart': return '❤️';
+      case 'thumbs_up': return '👍';
+      case 'smile': return '😊';
+      case 'love': return '🥰';
+      default: return '👍';
     }
   };
 
@@ -341,89 +616,49 @@ export default function DailyReportsScreen() {
 
       <Text style={styles.sectionTitle}>Meals</Text>
       
-      <Text style={styles.inputLabel}>Breakfast</Text>
-      <View style={styles.mealOptions}>
-        {MEAL_OPTIONS.map((option) => (
-          <TouchableOpacity
-            key={option}
-            style={[
-              styles.mealOption,
-              formData.mealsTaken.breakfast === option && styles.mealOptionSelected,
-            ]}
-            onPress={() =>
+      {['breakfast', 'lunch', 'snack'].map((mealType) => (
+        <View key={mealType}>
+          <Text style={styles.inputLabel}>{mealType.charAt(0).toUpperCase() + mealType.slice(1)}</Text>
+          <View style={styles.mealOptions}>
+            {MEAL_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option}
+                style={[
+                  styles.mealOption,
+                  formData.mealsTaken[mealType as keyof typeof formData.mealsTaken] === option && styles.mealOptionSelected,
+                ]}
+                onPress={() =>
+                  setFormData({
+                    ...formData,
+                    mealsTaken: { ...formData.mealsTaken, [mealType]: option },
+                  })
+                }
+              >
+                <Text
+                  style={[
+                    styles.mealOptionText,
+                    formData.mealsTaken[mealType as keyof typeof formData.mealsTaken] === option && styles.mealOptionTextSelected,
+                  ]}
+                >
+                  {option}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TextInput
+            style={styles.input}
+            value={formData.mealDescriptions[mealType as keyof typeof formData.mealDescriptions]}
+            onChangeText={(text) =>
               setFormData({
                 ...formData,
-                mealsTaken: { ...formData.mealsTaken, breakfast: option },
+                mealDescriptions: { ...formData.mealDescriptions, [mealType]: text },
               })
             }
-          >
-            <Text
-              style={[
-                styles.mealOptionText,
-                formData.mealsTaken.breakfast === option && styles.mealOptionTextSelected,
-              ]}
-            >
-              {option}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.inputLabel}>Lunch</Text>
-      <View style={styles.mealOptions}>
-        {MEAL_OPTIONS.map((option) => (
-          <TouchableOpacity
-            key={option}
-            style={[
-              styles.mealOption,
-              formData.mealsTaken.lunch === option && styles.mealOptionSelected,
-            ]}
-            onPress={() =>
-              setFormData({
-                ...formData,
-                mealsTaken: { ...formData.mealsTaken, lunch: option },
-              })
-            }
-          >
-            <Text
-              style={[
-                styles.mealOptionText,
-                formData.mealsTaken.lunch === option && styles.mealOptionTextSelected,
-              ]}
-            >
-              {option}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Text style={styles.inputLabel}>Snack</Text>
-      <View style={styles.mealOptions}>
-        {MEAL_OPTIONS.map((option) => (
-          <TouchableOpacity
-            key={option}
-            style={[
-              styles.mealOption,
-              formData.mealsTaken.snack === option && styles.mealOptionSelected,
-            ]}
-            onPress={() =>
-              setFormData({
-                ...formData,
-                mealsTaken: { ...formData.mealsTaken, snack: option },
-              })
-            }
-          >
-            <Text
-              style={[
-                styles.mealOptionText,
-                formData.mealsTaken.snack === option && styles.mealOptionTextSelected,
-              ]}
-            >
-              {option}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+            placeholder={`What was served for ${mealType}?`}
+            placeholderTextColor={colors.textSecondary}
+          />
+        </View>
+      ))}
 
       <Text style={styles.sectionTitle}>Nap Time</Text>
       
@@ -510,6 +745,290 @@ export default function DailyReportsScreen() {
           </TouchableOpacity>
         ))}
       </View>
+
+      <Text style={styles.sectionTitle}>Photos & Videos</Text>
+      
+      <View style={styles.mediaButtons}>
+        <TouchableOpacity
+          style={styles.mediaButton}
+          onPress={pickImage}
+          disabled={uploadingMedia}
+        >
+          <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={24} color={colors.primary} />
+          <Text style={styles.mediaButtonText}>Add Photo</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.mediaButton}
+          onPress={pickVideo}
+          disabled={uploadingMedia}
+        >
+          <IconSymbol ios_icon_name="video" android_material_icon_name="videocam" size={24} color={colors.primary} />
+          <Text style={styles.mediaButtonText}>Add Video</Text>
+        </TouchableOpacity>
+      </View>
+
+      {formData.photos.length > 0 && (
+        <View style={styles.mediaGrid}>
+          {formData.photos.map((photo, index) => (
+            <View key={index} style={styles.mediaItem}>
+              <Image source={{ uri: photo.url }} style={styles.mediaThumbnail} />
+              <TouchableOpacity
+                style={styles.removeMediaButton}
+                onPress={() => removePhoto(index)}
+              >
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={24} color="#DC3545" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {formData.videos.length > 0 && (
+        <View style={styles.mediaGrid}>
+          {formData.videos.map((video, index) => (
+            <View key={index} style={styles.mediaItem}>
+              <View style={styles.videoPlaceholder}>
+                <IconSymbol ios_icon_name="play.circle.fill" android_material_icon_name="play-circle-filled" size={48} color={colors.primary} />
+              </View>
+              <TouchableOpacity
+                style={styles.removeMediaButton}
+                onPress={() => removeVideo(index)}
+              >
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={24} color="#DC3545" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      <Text style={styles.sectionTitle}>Medication Report (Optional)</Text>
+      <TouchableOpacity
+        style={styles.addReportButton}
+        onPress={() => {
+          if (formData.medicationReport) {
+            setFormData({ ...formData, medicationReport: undefined });
+          } else {
+            setFormData({
+              ...formData,
+              medicationReport: {
+                medicationName: '',
+                dosage: '',
+                time: '',
+                administeredBy: '',
+                notes: '',
+              },
+            });
+          }
+        }}
+      >
+        <Text style={styles.addReportButtonText}>
+          {formData.medicationReport ? 'Remove Medication Report' : 'Add Medication Report'}
+        </Text>
+      </TouchableOpacity>
+
+      {formData.medicationReport && (
+        <View style={styles.reportSection}>
+          <TextInput
+            style={styles.input}
+            value={formData.medicationReport.medicationName}
+            onChangeText={(text) =>
+              setFormData({
+                ...formData,
+                medicationReport: { ...formData.medicationReport!, medicationName: text },
+              })
+            }
+            placeholder="Medication Name"
+            placeholderTextColor={colors.textSecondary}
+          />
+          <TextInput
+            style={styles.input}
+            value={formData.medicationReport.dosage}
+            onChangeText={(text) =>
+              setFormData({
+                ...formData,
+                medicationReport: { ...formData.medicationReport!, dosage: text },
+              })
+            }
+            placeholder="Dosage"
+            placeholderTextColor={colors.textSecondary}
+          />
+          <TouchableOpacity
+            style={styles.timeButton}
+            onPress={() => {
+              setTimePickerField('medicationTime');
+              setShowTimePicker(true);
+            }}
+          >
+            <Text style={styles.timeButtonText}>
+              {formData.medicationReport.time ? formatTime(formData.medicationReport.time) : 'Select Time'}
+            </Text>
+            <IconSymbol ios_icon_name="clock" android_material_icon_name="access-time" size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TextInput
+            style={styles.input}
+            value={formData.medicationReport.administeredBy}
+            onChangeText={(text) =>
+              setFormData({
+                ...formData,
+                medicationReport: { ...formData.medicationReport!, administeredBy: text },
+              })
+            }
+            placeholder="Administered By"
+            placeholderTextColor={colors.textSecondary}
+          />
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={formData.medicationReport.notes}
+            onChangeText={(text) =>
+              setFormData({
+                ...formData,
+                medicationReport: { ...formData.medicationReport!, notes: text },
+              })
+            }
+            placeholder="Notes"
+            placeholderTextColor={colors.textSecondary}
+            multiline
+            numberOfLines={3}
+          />
+        </View>
+      )}
+
+      <Text style={styles.sectionTitle}>Incident Report (Optional)</Text>
+      <TouchableOpacity
+        style={styles.addReportButton}
+        onPress={() => {
+          if (formData.incidentReport) {
+            setFormData({ ...formData, incidentReport: undefined });
+          } else {
+            setFormData({
+              ...formData,
+              incidentReport: {
+                type: 'minor injury',
+                description: '',
+                time: '',
+                actionTaken: '',
+                reportedBy: '',
+                severity: 'low',
+              },
+            });
+          }
+        }}
+      >
+        <Text style={styles.addReportButtonText}>
+          {formData.incidentReport ? 'Remove Incident Report' : 'Add Incident Report'}
+        </Text>
+      </TouchableOpacity>
+
+      {formData.incidentReport && (
+        <View style={styles.reportSection}>
+          <Text style={styles.inputLabel}>Incident Type</Text>
+          <View style={styles.mealOptions}>
+            {INCIDENT_TYPES.map((type) => (
+              <TouchableOpacity
+                key={type}
+                style={[
+                  styles.mealOption,
+                  formData.incidentReport?.type === type && styles.mealOptionSelected,
+                ]}
+                onPress={() =>
+                  setFormData({
+                    ...formData,
+                    incidentReport: { ...formData.incidentReport!, type },
+                  })
+                }
+              >
+                <Text
+                  style={[
+                    styles.mealOptionText,
+                    formData.incidentReport?.type === type && styles.mealOptionTextSelected,
+                  ]}
+                >
+                  {type}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={formData.incidentReport.description}
+            onChangeText={(text) =>
+              setFormData({
+                ...formData,
+                incidentReport: { ...formData.incidentReport!, description: text },
+              })
+            }
+            placeholder="Description"
+            placeholderTextColor={colors.textSecondary}
+            multiline
+            numberOfLines={3}
+          />
+          <TouchableOpacity
+            style={styles.timeButton}
+            onPress={() => {
+              setTimePickerField('incidentTime');
+              setShowTimePicker(true);
+            }}
+          >
+            <Text style={styles.timeButtonText}>
+              {formData.incidentReport.time ? formatTime(formData.incidentReport.time) : 'Select Time'}
+            </Text>
+            <IconSymbol ios_icon_name="clock" android_material_icon_name="access-time" size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={formData.incidentReport.actionTaken}
+            onChangeText={(text) =>
+              setFormData({
+                ...formData,
+                incidentReport: { ...formData.incidentReport!, actionTaken: text },
+              })
+            }
+            placeholder="Action Taken"
+            placeholderTextColor={colors.textSecondary}
+            multiline
+            numberOfLines={3}
+          />
+          <TextInput
+            style={styles.input}
+            value={formData.incidentReport.reportedBy}
+            onChangeText={(text) =>
+              setFormData({
+                ...formData,
+                incidentReport: { ...formData.incidentReport!, reportedBy: text },
+              })
+            }
+            placeholder="Reported By"
+            placeholderTextColor={colors.textSecondary}
+          />
+          <Text style={styles.inputLabel}>Severity</Text>
+          <View style={styles.mealOptions}>
+            {SEVERITY_LEVELS.map((severity) => (
+              <TouchableOpacity
+                key={severity}
+                style={[
+                  styles.mealOption,
+                  formData.incidentReport?.severity === severity && styles.mealOptionSelected,
+                ]}
+                onPress={() =>
+                  setFormData({
+                    ...formData,
+                    incidentReport: { ...formData.incidentReport!, severity },
+                  })
+                }
+              >
+                <Text
+                  style={[
+                    styles.mealOptionText,
+                    formData.incidentReport?.severity === severity && styles.mealOptionTextSelected,
+                  ]}
+                >
+                  {severity}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       <Text style={styles.inputLabel}>Additional Notes</Text>
       <TextInput
@@ -632,24 +1151,19 @@ export default function DailyReportsScreen() {
                       <IconSymbol ios_icon_name="fork.knife" android_material_icon_name="restaurant" size={20} color={colors.secondary} />
                       <Text style={styles.reportSectionTitle}>Meals</Text>
                     </View>
-                    {report.mealsTaken.breakfast && (
-                      <View style={styles.reportRow}>
-                        <Text style={styles.reportLabel}>Breakfast:</Text>
-                        <Text style={styles.reportValue}>{report.mealsTaken.breakfast}</Text>
+                    {Object.entries(report.mealsTaken).map(([mealType, amount]) => (
+                      <View key={mealType}>
+                        <View style={styles.reportRow}>
+                          <Text style={styles.reportLabel}>{mealType.charAt(0).toUpperCase() + mealType.slice(1)}:</Text>
+                          <Text style={styles.reportValue}>{amount}</Text>
+                        </View>
+                        {report.mealDescriptions?.[mealType as keyof typeof report.mealDescriptions] && (
+                          <Text style={styles.mealDescription}>
+                            {report.mealDescriptions[mealType as keyof typeof report.mealDescriptions]}
+                          </Text>
+                        )}
                       </View>
-                    )}
-                    {report.mealsTaken.lunch && (
-                      <View style={styles.reportRow}>
-                        <Text style={styles.reportLabel}>Lunch:</Text>
-                        <Text style={styles.reportValue}>{report.mealsTaken.lunch}</Text>
-                      </View>
-                    )}
-                    {report.mealsTaken.snack && (
-                      <View style={styles.reportRow}>
-                        <Text style={styles.reportLabel}>Snack:</Text>
-                        <Text style={styles.reportValue}>{report.mealsTaken.snack}</Text>
-                      </View>
-                    )}
+                    ))}
                   </View>
                 )}
 
@@ -702,6 +1216,104 @@ export default function DailyReportsScreen() {
                   </View>
                 )}
 
+                {report.photos && report.photos.length > 0 && (
+                  <View style={styles.reportSection}>
+                    <View style={styles.reportSectionHeader}>
+                      <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={20} color={colors.secondary} />
+                      <Text style={styles.reportSectionTitle}>Photos</Text>
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View style={styles.mediaGallery}>
+                        {report.photos.map((photo, index) => (
+                          <Image key={index} source={{ uri: photo.url }} style={styles.galleryImage} />
+                        ))}
+                      </View>
+                    </ScrollView>
+                  </View>
+                )}
+
+                {report.videos && report.videos.length > 0 && (
+                  <View style={styles.reportSection}>
+                    <View style={styles.reportSectionHeader}>
+                      <IconSymbol ios_icon_name="video" android_material_icon_name="videocam" size={20} color={colors.secondary} />
+                      <Text style={styles.reportSectionTitle}>Videos</Text>
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View style={styles.mediaGallery}>
+                        {report.videos.map((video, index) => (
+                          <View key={index} style={styles.videoThumbnail}>
+                            <IconSymbol ios_icon_name="play.circle.fill" android_material_icon_name="play-circle-filled" size={48} color={colors.primary} />
+                          </View>
+                        ))}
+                      </View>
+                    </ScrollView>
+                  </View>
+                )}
+
+                {report.medicationReport && (
+                  <View style={[styles.reportSection, styles.alertSection]}>
+                    <View style={styles.reportSectionHeader}>
+                      <IconSymbol ios_icon_name="pills.fill" android_material_icon_name="medication" size={20} color="#DC3545" />
+                      <Text style={[styles.reportSectionTitle, styles.alertTitle]}>Medication Report</Text>
+                    </View>
+                    <View style={styles.reportRow}>
+                      <Text style={styles.reportLabel}>Medication:</Text>
+                      <Text style={styles.reportValue}>{report.medicationReport.medicationName}</Text>
+                    </View>
+                    <View style={styles.reportRow}>
+                      <Text style={styles.reportLabel}>Dosage:</Text>
+                      <Text style={styles.reportValue}>{report.medicationReport.dosage}</Text>
+                    </View>
+                    <View style={styles.reportRow}>
+                      <Text style={styles.reportLabel}>Time:</Text>
+                      <Text style={styles.reportValue}>{formatTime(report.medicationReport.time)}</Text>
+                    </View>
+                    <View style={styles.reportRow}>
+                      <Text style={styles.reportLabel}>Administered By:</Text>
+                      <Text style={styles.reportValue}>{report.medicationReport.administeredBy}</Text>
+                    </View>
+                    {report.medicationReport.notes && (
+                      <Text style={styles.reportText}>{report.medicationReport.notes}</Text>
+                    )}
+                  </View>
+                )}
+
+                {report.incidentReport && (
+                  <View style={[styles.reportSection, styles.alertSection]}>
+                    <View style={styles.reportSectionHeader}>
+                      <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={20} color="#FFC107" />
+                      <Text style={[styles.reportSectionTitle, styles.alertTitle]}>Incident Report</Text>
+                    </View>
+                    <View style={styles.reportRow}>
+                      <Text style={styles.reportLabel}>Type:</Text>
+                      <Text style={styles.reportValue}>{report.incidentReport.type}</Text>
+                    </View>
+                    <View style={styles.reportRow}>
+                      <Text style={styles.reportLabel}>Severity:</Text>
+                      <Text style={[styles.reportValue, styles.severityBadge, 
+                        report.incidentReport.severity === 'high' && styles.severityHigh,
+                        report.incidentReport.severity === 'medium' && styles.severityMedium,
+                        report.incidentReport.severity === 'low' && styles.severityLow
+                      ]}>
+                        {report.incidentReport.severity}
+                      </Text>
+                    </View>
+                    <View style={styles.reportRow}>
+                      <Text style={styles.reportLabel}>Time:</Text>
+                      <Text style={styles.reportValue}>{formatTime(report.incidentReport.time)}</Text>
+                    </View>
+                    <Text style={styles.reportText}>{report.incidentReport.description}</Text>
+                    <View style={styles.reportRow}>
+                      <Text style={styles.reportLabel}>Action Taken:</Text>
+                    </View>
+                    <Text style={styles.reportText}>{report.incidentReport.actionTaken}</Text>
+                    <View style={styles.reportRow}>
+                      <Text style={styles.reportLabel}>Reported By:</Text>
+                      <Text style={styles.reportValue}>{report.incidentReport.reportedBy}</Text>
+                    </View>
+                  </View>
+                )}
+
                 {report.notes && (
                   <View style={styles.reportSection}>
                     <View style={styles.reportSectionHeader}>
@@ -709,6 +1321,53 @@ export default function DailyReportsScreen() {
                       <Text style={styles.reportSectionTitle}>Notes</Text>
                     </View>
                     <Text style={styles.reportText}>{report.notes}</Text>
+                  </View>
+                )}
+
+                {userRole === 'parent' && (
+                  <View style={styles.interactionSection}>
+                    <View style={styles.reactionsRow}>
+                      {REACTION_TYPES.map((type) => (
+                        <TouchableOpacity
+                          key={type}
+                          style={styles.reactionButton}
+                          onPress={() => handleReaction(report.id, type)}
+                        >
+                          <Text style={styles.reactionEmoji}>{getReactionIcon(type)}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    {report.reactions && report.reactions.length > 0 && (
+                      <View style={styles.reactionsDisplay}>
+                        {report.reactions.map((reaction) => (
+                          <View key={reaction.id} style={styles.reactionItem}>
+                            <Text style={styles.reactionEmoji}>{getReactionIcon(reaction.reactionType)}</Text>
+                            <Text style={styles.reactionName}>{reaction.parentName}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={styles.commentButton}
+                      onPress={() => {
+                        setSelectedReport(report);
+                        setShowCommentModal(true);
+                      }}
+                    >
+                      <IconSymbol ios_icon_name="bubble.left" android_material_icon_name="comment" size={20} color={colors.primary} />
+                      <Text style={styles.commentButtonText}>Add Comment</Text>
+                    </TouchableOpacity>
+                    {report.comments && report.comments.length > 0 && (
+                      <View style={styles.commentsSection}>
+                        {report.comments.map((comment) => (
+                          <View key={comment.id} style={styles.commentItem}>
+                            <Text style={styles.commentAuthor}>{comment.parentName}</Text>
+                            <Text style={styles.commentText}>{comment.comment}</Text>
+                            <Text style={styles.commentDate}>{formatDate(comment.createdAt)}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
@@ -745,6 +1404,51 @@ export default function DailyReportsScreen() {
       >
         <View style={styles.modalContainer}>
           {renderReportForm()}
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showCommentModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => {
+          setShowCommentModal(false);
+          setCommentText('');
+          setSelectedReport(null);
+        }}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.commentModalContent}>
+            <Text style={styles.modalTitle}>Add Comment</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={commentText}
+              onChangeText={setCommentText}
+              placeholder="Write your comment..."
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              numberOfLines={6}
+              autoFocus
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setShowCommentModal(false);
+                  setCommentText('');
+                  setSelectedReport(null);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={() => selectedReport && handleAddComment(selectedReport.id)}
+              >
+                <Text style={styles.saveButtonText}>Post Comment</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </Modal>
 
@@ -907,6 +1611,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 20,
   },
+  mealDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
   moodBadge: {
     backgroundColor: colors.highlight,
     paddingHorizontal: 12,
@@ -919,6 +1630,127 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
     textTransform: 'capitalize',
+  },
+  alertSection: {
+    backgroundColor: '#FFF3CD',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FFC107',
+  },
+  alertTitle: {
+    color: '#856404',
+  },
+  severityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    textTransform: 'uppercase',
+    fontSize: 12,
+  },
+  severityLow: {
+    backgroundColor: '#28A745',
+    color: '#FFF',
+  },
+  severityMedium: {
+    backgroundColor: '#FFC107',
+    color: '#000',
+  },
+  severityHigh: {
+    backgroundColor: '#DC3545',
+    color: '#FFF',
+  },
+  mediaGallery: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  galleryImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+  },
+  videoThumbnail: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  interactionSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  reactionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  reactionButton: {
+    padding: 8,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+  },
+  reactionEmoji: {
+    fontSize: 24,
+  },
+  reactionsDisplay: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  reactionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  reactionName: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  commentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+  },
+  commentButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  commentsSection: {
+    marginTop: 12,
+    gap: 8,
+  },
+  commentItem: {
+    backgroundColor: colors.background,
+    padding: 12,
+    borderRadius: 8,
+  },
+  commentAuthor: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  commentText: {
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  commentDate: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -943,6 +1775,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   modalContent: {
+    flex: 1,
+    padding: 20,
+    paddingTop: Platform.OS === 'android' ? 60 : 60,
+  },
+  commentModalContent: {
     flex: 1,
     padding: 20,
     paddingTop: Platform.OS === 'android' ? 60 : 60,
@@ -975,6 +1812,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: colors.text,
+    marginBottom: 12,
   },
   textArea: {
     minHeight: 100,
@@ -1062,6 +1900,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
   },
   timeButtonText: {
     fontSize: 16,
@@ -1093,6 +1932,69 @@ const styles = StyleSheet.create({
   moodOptionTextSelected: {
     color: colors.card,
     fontWeight: '600',
+  },
+  mediaButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  mediaButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+  },
+  mediaButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  mediaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  mediaItem: {
+    position: 'relative',
+  },
+  mediaThumbnail: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  videoPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    backgroundColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeMediaButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+  },
+  addReportButton: {
+    padding: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addReportButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
   modalButtons: {
     flexDirection: 'row',
