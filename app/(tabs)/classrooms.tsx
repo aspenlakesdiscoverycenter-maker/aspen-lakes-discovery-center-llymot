@@ -145,12 +145,17 @@ export default function ClassroomsScreen() {
   }, [loadData]);
 
   const handleCreateClassroom = async () => {
+    console.log('[Classrooms] Create button pressed');
+    console.log('[Classrooms] Form data:', { newClassroomName, newClassroomCapacity, newClassroomAgeGroup, newClassroomDescription });
+    
     if (!newClassroomName.trim() || !newClassroomCapacity) {
+      console.log('[Classrooms] Validation failed - missing name or capacity');
       Alert.alert('Error', 'Please fill in classroom name and capacity');
       return;
     }
 
     try {
+      console.log('[Classrooms] Creating classroom...');
       // Create classroom with provided data
       await authenticatedPost('/api/classrooms', {
         name: newClassroomName,
@@ -159,6 +164,7 @@ export default function ClassroomsScreen() {
         description: newClassroomDescription || undefined,
       });
 
+      console.log('[Classrooms] Classroom created successfully');
       setShowCreateModal(false);
       setNewClassroomName('');
       setNewClassroomCapacity('');
@@ -173,14 +179,17 @@ export default function ClassroomsScreen() {
   };
 
   const handleAssignChild = async (childId: string) => {
+    console.log('[Classrooms] Assign child button pressed:', childId);
     if (!selectedClassroom) return;
 
     try {
+      console.log('[Classrooms] Assigning child to classroom...');
       // Assign child to classroom
       await authenticatedPost(`/api/classrooms/${selectedClassroom.id}/assign-child`, {
         childId,
       });
 
+      console.log('[Classrooms] Child assigned successfully');
       setShowAssignModal(false);
       setSelectedClassroom(null);
       loadData();
@@ -237,7 +246,11 @@ export default function ClassroomsScreen() {
         <Text style={styles.headerTitle}>Classrooms</Text>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => setShowCreateModal(true)}
+          onPress={() => {
+            console.log('[Classrooms] Add button pressed - opening modal');
+            setShowCreateModal(true);
+          }}
+          activeOpacity={0.7}
         >
           <IconSymbol
             ios_icon_name="plus.circle.fill"
@@ -254,6 +267,7 @@ export default function ClassroomsScreen() {
             <TouchableOpacity
               style={styles.classroomHeader}
               onPress={() => setExpandedClassroom(expandedClassroom === classroom.id ? null : classroom.id)}
+              activeOpacity={0.7}
             >
               <View style={styles.classroomInfo}>
                 <Text style={styles.classroomName}>{classroom.name}</Text>
@@ -307,9 +321,11 @@ export default function ClassroomsScreen() {
                     <Text style={styles.sectionTitle}>Children in Classroom</Text>
                     <TouchableOpacity
                       onPress={() => {
+                        console.log('[Classrooms] Assign child icon pressed');
                         setSelectedClassroom(classroom);
                         setShowAssignModal(true);
                       }}
+                      activeOpacity={0.7}
                     >
                       <IconSymbol
                         ios_icon_name="person.badge.plus"
@@ -343,6 +359,7 @@ export default function ClassroomsScreen() {
                         </View>
                         <TouchableOpacity
                           onPress={() => handleRemoveChild(classroom.id, child.id)}
+                          activeOpacity={0.7}
                         >
                           <IconSymbol
                             ios_icon_name="xmark.circle"
@@ -379,7 +396,10 @@ export default function ClassroomsScreen() {
         visible={showCreateModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowCreateModal(false)}
+        onRequestClose={() => {
+          console.log('[Classrooms] Modal close requested');
+          setShowCreateModal(false);
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -390,7 +410,10 @@ export default function ClassroomsScreen() {
               placeholder="Classroom Name *"
               placeholderTextColor={colors.textSecondary}
               value={newClassroomName}
-              onChangeText={setNewClassroomName}
+              onChangeText={(text) => {
+                console.log('[Classrooms] Name changed:', text);
+                setNewClassroomName(text);
+              }}
             />
 
             <TextInput
@@ -398,7 +421,10 @@ export default function ClassroomsScreen() {
               placeholder="Capacity *"
               placeholderTextColor={colors.textSecondary}
               value={newClassroomCapacity}
-              onChangeText={setNewClassroomCapacity}
+              onChangeText={(text) => {
+                console.log('[Classrooms] Capacity changed:', text);
+                setNewClassroomCapacity(text);
+              }}
               keyboardType="number-pad"
             />
 
@@ -423,13 +449,21 @@ export default function ClassroomsScreen() {
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowCreateModal(false)}
+                onPress={() => {
+                  console.log('[Classrooms] Cancel button pressed');
+                  setShowCreateModal(false);
+                }}
+                activeOpacity={0.7}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.createButton]}
-                onPress={handleCreateClassroom}
+                onPress={() => {
+                  console.log('[Classrooms] Create button onPress triggered');
+                  handleCreateClassroom();
+                }}
+                activeOpacity={0.7}
               >
                 <Text style={styles.createButtonText}>Create</Text>
               </TouchableOpacity>
@@ -454,7 +488,11 @@ export default function ClassroomsScreen() {
                 <TouchableOpacity
                   key={child.id}
                   style={styles.childListItem}
-                  onPress={() => handleAssignChild(child.id)}
+                  onPress={() => {
+                    console.log('[Classrooms] Child selected for assignment:', child.id);
+                    handleAssignChild(child.id);
+                  }}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.childListName}>
                     {child.firstName} {child.lastName}
@@ -474,7 +512,11 @@ export default function ClassroomsScreen() {
 
             <TouchableOpacity
               style={[styles.modalButton, styles.cancelButton, { marginTop: 16 }]}
-              onPress={() => setShowAssignModal(false)}
+              onPress={() => {
+                console.log('[Classrooms] Close assign modal');
+                setShowAssignModal(false);
+              }}
+              activeOpacity={0.7}
             >
               <Text style={styles.cancelButtonText}>Close</Text>
             </TouchableOpacity>
