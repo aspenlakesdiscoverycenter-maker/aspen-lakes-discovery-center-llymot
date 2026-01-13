@@ -42,6 +42,10 @@ export const isBackendConfigured = (): boolean => {
   return !!BACKEND_URL && BACKEND_URL.length > 0;
 };
 
+// Log the backend URL for debugging
+console.log("[API] Backend URL configured:", BACKEND_URL);
+console.log("[API] Backend configured:", isBackendConfigured() ? "YES" : "NO");
+
 /**
  * Get bearer token from platform-specific storage
  * Web: localStorage

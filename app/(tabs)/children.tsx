@@ -82,9 +82,19 @@ export default function ChildrenScreen() {
       const data = await authenticatedGet<Child[]>('/api/profiles/children');
       console.log('[ChildrenScreen] Children loaded:', data);
       setChildren(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('[ChildrenScreen] Error loading children:', error);
-      Alert.alert('Error', 'Failed to load children. Please try again.');
+      
+      // Check if it's an authorization error
+      if (error?.message?.includes('403') || error?.message?.includes('Unauthorized')) {
+        Alert.alert(
+          'Access Required',
+          'Your account needs staff or director permissions to view children profiles. Please contact your administrator.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to load children. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -96,9 +106,18 @@ export default function ChildrenScreen() {
       const data = await authenticatedGet<Child>(`/api/profiles/child/${childId}`);
       console.log('[ChildrenScreen] Child details loaded:', data);
       setSelectedChild(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('[ChildrenScreen] Error loading child details:', error);
-      Alert.alert('Error', 'Failed to load child details.');
+      
+      if (error?.message?.includes('403') || error?.message?.includes('Unauthorized')) {
+        Alert.alert(
+          'Access Required',
+          'You do not have permission to view this child\'s details.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to load child details.');
+      }
     }
   };
 
@@ -108,13 +127,13 @@ export default function ChildrenScreen() {
     
     if (!formData.firstName?.trim()) {
       console.log('[ChildrenScreen] Validation failed - missing first name');
-      Alert.alert('Error', 'Please enter first name.');
+      Alert.alert('Required Field', 'Please enter the child\'s first name.');
       return;
     }
 
     if (!formData.lastName?.trim()) {
       console.log('[ChildrenScreen] Validation failed - missing last name');
-      Alert.alert('Error', 'Please enter last name.');
+      Alert.alert('Required Field', 'Please enter the child\'s last name.');
       return;
     }
 
@@ -143,14 +162,34 @@ export default function ChildrenScreen() {
       await authenticatedPost('/api/profiles/children', requestBody);
       
       console.log('[ChildrenScreen] Child added successfully');
-      Alert.alert('Success', 'Child profile created successfully!');
+      Alert.alert('Success', `${formData.firstName} ${formData.lastName}'s profile has been created!`);
       
       setShowAddModal(false);
       resetForm();
       await loadChildren();
-    } catch (error) {
+    } catch (error: any) {
       console.error('[ChildrenScreen] Error adding child:', error);
-      Alert.alert('Error', 'Failed to create child profile. Please try again.');
+      
+      // Provide specific error messages based on the error type
+      if (error?.message?.includes('403') || error?.message?.includes('Unauthorized')) {
+        Alert.alert(
+          'Permission Denied',
+          'Your account needs staff or director permissions to add children. The backend is being updated to fix this. Please try again in a moment.',
+          [{ text: 'OK' }]
+        );
+      } else if (error?.message?.includes('400')) {
+        Alert.alert(
+          'Invalid Information',
+          'Please check that all required fields are filled out correctly.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          'Failed to create child profile. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
     } finally {
       setSaving(false);
     }
@@ -191,9 +230,18 @@ export default function ChildrenScreen() {
       resetForm();
       await loadChildren();
       await loadChildDetails(selectedChild.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error('[ChildrenScreen] Error updating child:', error);
-      Alert.alert('Error', 'Failed to update child profile. Please try again.');
+      
+      if (error?.message?.includes('403') || error?.message?.includes('Unauthorized')) {
+        Alert.alert(
+          'Permission Denied',
+          'You do not have permission to update this child\'s profile.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to update child profile. Please try again.');
+      }
     } finally {
       setSaving(false);
     }
@@ -202,7 +250,7 @@ export default function ChildrenScreen() {
   const handleDeleteChild = async (childId: string) => {
     Alert.alert(
       'Confirm Delete',
-      'Are you sure you want to delete this child profile?',
+      'Are you sure you want to delete this child profile? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -210,13 +258,23 @@ export default function ChildrenScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log('[ChildrenScreen] Deleting child:', childId);
               await authenticatedDelete(`/api/profiles/child/${childId}`);
               Alert.alert('Success', 'Child profile deleted.');
               setSelectedChild(null);
               loadChildren();
-            } catch (error) {
+            } catch (error: any) {
               console.error('[ChildrenScreen] Error deleting child:', error);
-              Alert.alert('Error', 'Failed to delete child profile.');
+              
+              if (error?.message?.includes('403') || error?.message?.includes('Unauthorized')) {
+                Alert.alert(
+                  'Permission Denied',
+                  'Only directors can delete child profiles.',
+                  [{ text: 'OK' }]
+                );
+              } else {
+                Alert.alert('Error', 'Failed to delete child profile.');
+              }
             }
           },
         },
