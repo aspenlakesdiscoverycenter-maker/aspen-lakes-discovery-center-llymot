@@ -1,38 +1,33 @@
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image } from 'react-native';
+import { useAuth } from '@/contexts/AuthContext';
+import { router } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { router } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function ProfileScreen() {
-  const { user, loading, signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      router.replace('/auth');
-    } catch (error) {
-      console.error('Logout error:', error);
-      Alert.alert('Error', 'Failed to log out. Please try again.');
-    }
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace('/auth');
   };
-
-  if (loading || !user) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
-
-  const userRole = user?.role || 'parent';
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <View style={styles.headerContent}>
+          <Image 
+            source={require('@/assets/images/0d957812-ddb0-46c4-95b8-853537479c50.png')} 
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>Aspen Lakes</Text>
+            <Text style={styles.headerSubtitle}>Discovery Center</Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -46,165 +41,106 @@ export default function ProfileScreen() {
                 color={colors.primary} 
               />
             </View>
-            <Text style={styles.userName}>{user.name || 'User'}</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleBadgeText}>
-                {userRole === 'parent' ? 'Parent' : 'Staff Member'}
-              </Text>
-            </View>
+            <Text style={styles.userName}>{user?.name || 'User'}</Text>
+            <Text style={styles.userEmail}>{user?.email}</Text>
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <Text style={styles.sectionTitle}>Account Settings</Text>
             
-            {userRole === 'parent' ? (
-              <>
-                <TouchableOpacity style={styles.actionButton}>
-                  <IconSymbol 
-                    ios_icon_name="message.fill" 
-                    android_material_icon_name="message" 
-                    size={24} 
-                    color={colors.secondary} 
-                  />
-                  <Text style={styles.actionButtonText}>Messages</Text>
-                  <IconSymbol 
-                    ios_icon_name="chevron.right" 
-                    android_material_icon_name="chevron-right" 
-                    size={20} 
-                    color={colors.textSecondary} 
-                  />
-                </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem}>
+              <IconSymbol 
+                ios_icon_name="person.fill" 
+                android_material_icon_name="person" 
+                size={24} 
+                color={colors.primary} 
+              />
+              <Text style={styles.menuItemText}>Edit Profile</Text>
+              <IconSymbol 
+                ios_icon_name="chevron.right" 
+                android_material_icon_name="arrow-forward" 
+                size={20} 
+                color={colors.textSecondary} 
+              />
+            </TouchableOpacity>
 
-                <TouchableOpacity style={styles.actionButton}>
-                  <IconSymbol 
-                    ios_icon_name="doc.text.fill" 
-                    android_material_icon_name="description" 
-                    size={24} 
-                    color={colors.accent} 
-                  />
-                  <Text style={styles.actionButtonText}>Forms</Text>
-                  <IconSymbol 
-                    ios_icon_name="chevron.right" 
-                    android_material_icon_name="chevron-right" 
-                    size={20} 
-                    color={colors.textSecondary} 
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionButton}>
-                  <IconSymbol 
-                    ios_icon_name="creditcard.fill" 
-                    android_material_icon_name="payment" 
-                    size={24} 
-                    color={colors.primary} 
-                  />
-                  <Text style={styles.actionButtonText}>Billing</Text>
-                  <IconSymbol 
-                    ios_icon_name="chevron.right" 
-                    android_material_icon_name="chevron-right" 
-                    size={20} 
-                    color={colors.textSecondary} 
-                  />
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <TouchableOpacity style={styles.actionButton}>
-                  <IconSymbol 
-                    ios_icon_name="message.fill" 
-                    android_material_icon_name="message" 
-                    size={24} 
-                    color={colors.secondary} 
-                  />
-                  <Text style={styles.actionButtonText}>Staff Chat</Text>
-                  <IconSymbol 
-                    ios_icon_name="chevron.right" 
-                    android_material_icon_name="chevron-right" 
-                    size={20} 
-                    color={colors.textSecondary} 
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionButton}>
-                  <IconSymbol 
-                    ios_icon_name="calendar" 
-                    android_material_icon_name="schedule" 
-                    size={24} 
-                    color={colors.accent} 
-                  />
-                  <Text style={styles.actionButtonText}>My Schedule</Text>
-                  <IconSymbol 
-                    ios_icon_name="chevron.right" 
-                    android_material_icon_name="chevron-right" 
-                    size={20} 
-                    color={colors.textSecondary} 
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionButton}>
-                  <IconSymbol 
-                    ios_icon_name="person.2.fill" 
-                    android_material_icon_name="group" 
-                    size={24} 
-                    color={colors.primary} 
-                  />
-                  <Text style={styles.actionButtonText}>Children</Text>
-                  <IconSymbol 
-                    ios_icon_name="chevron.right" 
-                    android_material_icon_name="chevron-right" 
-                    size={20} 
-                    color={colors.textSecondary} 
-                  />
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Settings</Text>
-            
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.menuItem}>
               <IconSymbol 
                 ios_icon_name="bell.fill" 
                 android_material_icon_name="notifications" 
                 size={24} 
-                color={colors.textSecondary} 
+                color={colors.primary} 
               />
-              <Text style={styles.actionButtonText}>Notifications</Text>
+              <Text style={styles.menuItemText}>Notifications</Text>
               <IconSymbol 
                 ios_icon_name="chevron.right" 
-                android_material_icon_name="chevron-right" 
+                android_material_icon_name="arrow-forward" 
                 size={20} 
                 color={colors.textSecondary} 
               />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity style={styles.menuItem}>
               <IconSymbol 
-                ios_icon_name="gear" 
-                android_material_icon_name="settings" 
+                ios_icon_name="lock.fill" 
+                android_material_icon_name="lock" 
                 size={24} 
-                color={colors.textSecondary} 
+                color={colors.primary} 
               />
-              <Text style={styles.actionButtonText}>App Settings</Text>
+              <Text style={styles.menuItemText}>Privacy & Security</Text>
               <IconSymbol 
                 ios_icon_name="chevron.right" 
-                android_material_icon_name="chevron-right" 
+                android_material_icon_name="arrow-forward" 
                 size={20} 
                 color={colors.textSecondary} 
               />
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Support</Text>
+            
+            <TouchableOpacity style={styles.menuItem}>
+              <IconSymbol 
+                ios_icon_name="questionmark.circle.fill" 
+                android_material_icon_name="help" 
+                size={24} 
+                color={colors.primary} 
+              />
+              <Text style={styles.menuItemText}>Help Center</Text>
+              <IconSymbol 
+                ios_icon_name="chevron.right" 
+                android_material_icon_name="arrow-forward" 
+                size={20} 
+                color={colors.textSecondary} 
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem}>
+              <IconSymbol 
+                ios_icon_name="info.circle.fill" 
+                android_material_icon_name="info" 
+                size={24} 
+                color={colors.primary} 
+              />
+              <Text style={styles.menuItemText}>About</Text>
+              <IconSymbol 
+                ios_icon_name="chevron.right" 
+                android_material_icon_name="arrow-forward" 
+                size={20} 
+                color={colors.textSecondary} 
+              />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <IconSymbol 
               ios_icon_name="arrow.right.square.fill" 
-              android_material_icon_name="logout" 
+              android_material_icon_name="exit-to-app" 
               size={24} 
-              color="#FFFFFF" 
+              color="#fff" 
             />
-            <Text style={styles.logoutButtonText}>Log Out</Text>
+            <Text style={styles.signOutButtonText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -225,10 +161,29 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerLogo: {
+    width: 50,
+    height: 50,
+    marginRight: 12,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.secondary,
+    letterSpacing: 0.3,
   },
   scrollView: {
     flex: 1,
@@ -236,12 +191,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 100,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 40,
   },
   profileCard: {
     backgroundColor: colors.card,
@@ -262,20 +211,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   userEmail: {
-    fontSize: 14,
+    fontSize: 16,
     color: colors.textSecondary,
-    marginBottom: 12,
-  },
-  roleBadge: {
-    backgroundColor: colors.highlight,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  roleBadgeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
   },
   section: {
     marginBottom: 24,
@@ -285,37 +222,38 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginBottom: 12,
+    paddingHorizontal: 4,
   },
-  actionButton: {
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: 12,
     padding: 16,
+    borderRadius: 12,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  actionButtonText: {
+  menuItemText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '500',
     color: colors.text,
     marginLeft: 12,
+    fontWeight: '500',
   },
-  logoutButton: {
+  signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.primary,
-    borderRadius: 12,
     padding: 16,
+    borderRadius: 12,
     marginTop: 8,
   },
-  logoutButtonText: {
+  signOutButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '600',
+    color: '#fff',
     marginLeft: 8,
   },
 });

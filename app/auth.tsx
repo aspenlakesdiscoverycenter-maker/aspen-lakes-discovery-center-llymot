@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   View,
@@ -10,9 +11,11 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
+  Image,
 } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
+import { colors } from "@/styles/commonStyles";
 
 type Mode = "signin" | "signup";
 
@@ -78,14 +81,28 @@ export default function AuthScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('@/assets/images/7c235766-191b-436d-9f24-d928606ffa52.png')} 
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+
           <Text style={styles.title}>
-            {mode === "signin" ? "Sign In" : "Sign Up"}
+            {mode === "signin" ? "Welcome Back" : "Create Account"}
+          </Text>
+          <Text style={styles.subtitle}>
+            {mode === "signin" 
+              ? "Sign in to access your account" 
+              : "Join Aspen Lakes Discovery Center"}
           </Text>
 
           {mode === "signup" && (
             <TextInput
               style={styles.input}
               placeholder="Name (optional)"
+              placeholderTextColor={colors.textSecondary}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
@@ -95,6 +112,7 @@ export default function AuthScreen() {
           <TextInput
             style={styles.input}
             placeholder="Email"
+            placeholderTextColor={colors.textSecondary}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -105,6 +123,7 @@ export default function AuthScreen() {
           <TextInput
             style={styles.input}
             placeholder="Password"
+            placeholderTextColor={colors.textSecondary}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -170,7 +189,7 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -180,26 +199,41 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: "center",
   },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
+  logoContainer: {
+    alignItems: 'center',
     marginBottom: 32,
+  },
+  logo: {
+    width: 200,
+    height: 200,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 8,
     textAlign: "center",
-    color: "#000",
+    color: colors.primary,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 32,
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: 16,
     marginBottom: 16,
     fontSize: 16,
-    backgroundColor: "#fff",
+    backgroundColor: colors.card,
+    color: colors.text,
   },
   primaryButton: {
     height: 50,
-    backgroundColor: "#007AFF",
+    backgroundColor: colors.primary,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -218,8 +252,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   switchModeText: {
-    color: "#007AFF",
+    color: colors.secondary,
     fontSize: 14,
+    fontWeight: "500",
   },
   divider: {
     flexDirection: "row",
@@ -229,26 +264,26 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#ddd",
+    backgroundColor: colors.border,
   },
   dividerText: {
     marginHorizontal: 12,
-    color: "#666",
+    color: colors.textSecondary,
     fontSize: 14,
   },
   socialButton: {
     height: 50,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: colors.border,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
-    backgroundColor: "#fff",
+    backgroundColor: colors.card,
   },
   socialButtonText: {
     fontSize: 16,
-    color: "#000",
+    color: colors.text,
     fontWeight: "500",
   },
   appleButton: {

@@ -1,17 +1,18 @@
 
 import { StyleSheet } from 'react-native';
 
-// Daycare-friendly color palette - warm, welcoming, and professional
+// Aspen Lakes Discovery Center brand colors
 export const colors = {
-  primary: '#FF6B6B',      // Warm coral red
-  secondary: '#4ECDC4',    // Teal
-  accent: '#FFE66D',       // Sunny yellow
-  background: '#F7F9FC',   // Light blue-grey background
+  primary: '#0D5959',      // Deep teal (from logo leaves and text)
+  secondary: '#A67C52',    // Warm bronze/gold (from logo "L")
+  accent: '#C89B9B',       // Soft rose/mauve (from logo "D")
+  sage: '#8B9B7A',         // Sage green (from logo "C")
+  background: '#F9F7F4',   // Warm cream background
   backgroundAlt: '#FFFFFF', // White
   text: '#2C3E50',         // Dark blue-grey text
   textSecondary: '#7F8C8D', // Medium grey
   card: '#FFFFFF',         // White cards
-  highlight: '#95E1D3',    // Mint green
+  highlight: '#E8F4F4',    // Light teal highlight
   border: '#E8EDF2',       // Light border
 };
 

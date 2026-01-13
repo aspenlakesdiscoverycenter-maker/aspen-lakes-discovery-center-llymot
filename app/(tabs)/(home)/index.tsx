@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Platform, Alert, Image } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { router } from 'expo-router';
@@ -174,7 +174,14 @@ export default function HomeScreen() {
   if (authLoading || loading || !user) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <View style={styles.loadingContainer}>
+          <Image 
+            source={require('@/assets/images/5bf3058e-623b-4c52-af26-9d591fa00b37.png')} 
+            style={styles.loadingLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
       </View>
     );
   }
@@ -216,12 +223,20 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Aspen Lakes Discovery Center</Text>
-          <Text style={styles.headerSubtitle}>
-            {userRole === 'staff' ? 'Staff Dashboard' : `Welcome, ${user.name || user.email}!`}
-          </Text>
+        <View style={styles.headerContent}>
+          <Image 
+            source={require('@/assets/images/0d957812-ddb0-46c4-95b8-853537479c50.png')} 
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>Aspen Lakes</Text>
+            <Text style={styles.headerSubtitle}>Discovery Center</Text>
+          </View>
         </View>
+        <Text style={styles.headerRole}>
+          {userRole === 'staff' ? 'Staff Dashboard' : 'Parent Portal'}
+        </Text>
       </View>
 
       <ScrollView 
@@ -441,9 +456,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'android' ? 60 : 60,
     paddingBottom: 20,
@@ -451,18 +463,36 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  headerLogo: {
+    width: 50,
+    height: 50,
+    marginRight: 12,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.primary,
+    letterSpacing: 0.5,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.secondary,
+    letterSpacing: 0.3,
+  },
+  headerRole: {
+    fontSize: 13,
     color: colors.textSecondary,
     marginTop: 4,
-  },
-  logoutButton: {
-    padding: 8,
+    fontStyle: 'italic',
   },
   scrollView: {
     flex: 1,
@@ -471,11 +501,20 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 100,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingLogo: {
+    width: 120,
+    height: 120,
+    marginBottom: 20,
+  },
   loadingText: {
     fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 40,
   },
   childCard: {
     backgroundColor: colors.card,
@@ -484,6 +523,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     borderWidth: 1,
     borderColor: colors.border,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
   childHeader: {
     flexDirection: 'row',
@@ -528,7 +569,7 @@ const styles = StyleSheet.create({
   cardDate: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.primary,
     marginBottom: 12,
   },
   timeRow: {
@@ -585,7 +626,7 @@ const styles = StyleSheet.create({
   offBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.card,
   },
   staffCard: {
     flexDirection: 'row',
