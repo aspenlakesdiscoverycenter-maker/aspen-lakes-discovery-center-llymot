@@ -37,14 +37,14 @@ export default function AuthScreen() {
     try {
       if (mode === "signin") {
         await signInWithEmail(email, password);
-        router.replace("/(tabs)/(home)/");
+        router.replace("/");
       } else {
         await signUpWithEmail(email, password, name);
         Alert.alert(
           "Success",
           "Account created! Please check your email to verify your account."
         );
-        router.replace("/(tabs)/(home)/");
+        router.replace("/");
       }
     } catch (error: any) {
       Alert.alert("Error", error.message || "Authentication failed");
@@ -63,7 +63,7 @@ export default function AuthScreen() {
       } else if (provider === "github") {
         await signInWithGitHub();
       }
-      router.replace("/(tabs)/(home)/");
+      router.replace("/");
     } catch (error: any) {
       Alert.alert("Error", error.message || "Authentication failed");
     } finally {

@@ -13,6 +13,12 @@ export default function TabLayout() {
       label: 'Home',
     },
     {
+      name: 'time-off',
+      route: '/(tabs)/time-off',
+      icon: 'event-available',
+      label: 'Time Off',
+    },
+    {
       name: 'profile',
       route: '/(tabs)/profile',
       icon: 'person',
@@ -29,6 +35,7 @@ export default function TabLayout() {
         }}
       >
         <Stack.Screen key="home" name="(home)" />
+        <Stack.Screen key="time-off" name="time-off" />
         <Stack.Screen key="profile" name="profile" />
       </Stack>
       <FloatingTabBar tabs={tabs} />

@@ -21,8 +21,8 @@ export const authClient = createAuthClient({
   baseURL: API_URL,
   plugins: [
     expoClient({
-      scheme: "aspen-lakes",
-      storagePrefix: "aspen-lakes",
+      scheme: "daycare-app",
+      storagePrefix: "daycare-app",
       storage,
     }),
   ],

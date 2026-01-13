@@ -36,7 +36,7 @@
       "expo-router",
       "expo-web-browser"
     ],
-    "scheme": "aspen-lakes",
+    "scheme": "daycare-app",
     "experiments": {
       "typedRoutes": true
     },
@@ -44,6 +44,5 @@
       "router": {},
       "backendUrl": "https://qcj44xhpk7f73c64w2utyzvuu4bfqay5.app.specular.dev"
     }
-  },
-  "scheme": "Aspen Lakes"
+  }
 }

@@ -7,6 +7,7 @@ interface User {
   email: string;
   name?: string;
   image?: string;
+  role?: string;
 }
 
 interface AuthContextType {
@@ -124,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         await authClient.signIn.social({
           provider: "google",
-          callbackURL: "/(tabs)/(home)/",
+          callbackURL: "/",
         });
         await fetchUser();
       }
@@ -143,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         await authClient.signIn.social({
           provider: "apple",
-          callbackURL: "/(tabs)/(home)/",
+          callbackURL: "/",
         });
         await fetchUser();
       }
@@ -162,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         await authClient.signIn.social({
           provider: "github",
-          callbackURL: "/(tabs)/(home)/",
+          callbackURL: "/",
         });
         await fetchUser();
       }
