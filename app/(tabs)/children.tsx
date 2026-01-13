@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Platform, Alert, Image, TextInput, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Platform, Alert, Image, TextInput, Modal, ActivityIndicator } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,6 +49,7 @@ export default function ChildrenScreen() {
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -102,38 +103,99 @@ export default function ChildrenScreen() {
   };
 
   const handleAddChild = async () => {
-    if (!formData.firstName || !formData.lastName) {
-      Alert.alert('Error', 'Please enter first and last name.');
+    console.log('[ChildrenScreen] Add child button pressed');
+    console.log('[ChildrenScreen] Form data:', formData);
+    
+    if (!formData.firstName?.trim()) {
+      console.log('[ChildrenScreen] Validation failed - missing first name');
+      Alert.alert('Error', 'Please enter first name.');
+      return;
+    }
+
+    if (!formData.lastName?.trim()) {
+      console.log('[ChildrenScreen] Validation failed - missing last name');
+      Alert.alert('Error', 'Please enter last name.');
       return;
     }
 
     try {
-      console.log('[ChildrenScreen] Adding child:', formData);
-      await authenticatedPost('/api/profiles/children', formData);
+      setSaving(true);
+      console.log('[ChildrenScreen] Adding child...');
+      
+      const requestBody = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        dateOfBirth: formData.dateOfBirth,
+        isKindergarten: formData.isKindergarten || false,
+        street: formData.street?.trim() || undefined,
+        city: formData.city?.trim() || undefined,
+        province: formData.province?.trim() || undefined,
+        postalCode: formData.postalCode?.trim() || undefined,
+        albertaHealthcareNumber: formData.albertaHealthcareNumber?.trim() || undefined,
+        allergies: formData.allergies?.trim() || undefined,
+        generalHealth: formData.generalHealth?.trim() || undefined,
+        medicalNotes: formData.medicalNotes?.trim() || undefined,
+        parentNotes: formData.parentNotes?.trim() || undefined,
+      };
+      
+      console.log('[ChildrenScreen] Request body:', requestBody);
+      
+      await authenticatedPost('/api/profiles/children', requestBody);
+      
+      console.log('[ChildrenScreen] Child added successfully');
       Alert.alert('Success', 'Child profile created successfully!');
+      
       setShowAddModal(false);
       resetForm();
-      loadChildren();
+      await loadChildren();
     } catch (error) {
       console.error('[ChildrenScreen] Error adding child:', error);
-      Alert.alert('Error', 'Failed to create child profile.');
+      Alert.alert('Error', 'Failed to create child profile. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleUpdateChild = async () => {
     if (!selectedChild) return;
 
+    console.log('[ChildrenScreen] Update child button pressed');
+    console.log('[ChildrenScreen] Form data:', formData);
+
     try {
-      console.log('[ChildrenScreen] Updating child:', selectedChild.id, formData);
-      await authenticatedPut(`/api/profiles/child/${selectedChild.id}`, formData);
+      setSaving(true);
+      console.log('[ChildrenScreen] Updating child:', selectedChild.id);
+      
+      const requestBody = {
+        firstName: formData.firstName?.trim() || undefined,
+        lastName: formData.lastName?.trim() || undefined,
+        street: formData.street?.trim() || undefined,
+        city: formData.city?.trim() || undefined,
+        province: formData.province?.trim() || undefined,
+        postalCode: formData.postalCode?.trim() || undefined,
+        albertaHealthcareNumber: formData.albertaHealthcareNumber?.trim() || undefined,
+        allergies: formData.allergies?.trim() || undefined,
+        generalHealth: formData.generalHealth?.trim() || undefined,
+        medicalNotes: formData.medicalNotes?.trim() || undefined,
+        parentNotes: formData.parentNotes?.trim() || undefined,
+      };
+      
+      console.log('[ChildrenScreen] Request body:', requestBody);
+      
+      await authenticatedPut(`/api/profiles/child/${selectedChild.id}`, requestBody);
+      
+      console.log('[ChildrenScreen] Child updated successfully');
       Alert.alert('Success', 'Child profile updated successfully!');
+      
       setShowEditModal(false);
       resetForm();
-      loadChildren();
-      loadChildDetails(selectedChild.id);
+      await loadChildren();
+      await loadChildDetails(selectedChild.id);
     } catch (error) {
       console.error('[ChildrenScreen] Error updating child:', error);
-      Alert.alert('Error', 'Failed to update child profile.');
+      Alert.alert('Error', 'Failed to update child profile. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -241,6 +303,7 @@ export default function ChildrenScreen() {
         onChangeText={(text) => setFormData({ ...formData, firstName: text })}
         placeholder="Enter first name"
         placeholderTextColor={colors.textSecondary}
+        editable={!saving}
       />
 
       <Text style={styles.inputLabel}>Last Name *</Text>
@@ -250,6 +313,7 @@ export default function ChildrenScreen() {
         onChangeText={(text) => setFormData({ ...formData, lastName: text })}
         placeholder="Enter last name"
         placeholderTextColor={colors.textSecondary}
+        editable={!saving}
       />
 
       <Text style={styles.inputLabel}>Date of Birth *</Text>
@@ -257,6 +321,7 @@ export default function ChildrenScreen() {
         style={styles.dateButton}
         onPress={() => setShowDatePicker(true)}
         activeOpacity={0.6}
+        disabled={saving}
       >
         <Text style={styles.dateButtonText}>
           {formatDate(formData.dateOfBirth || new Date().toISOString())}
@@ -268,6 +333,7 @@ export default function ChildrenScreen() {
         style={styles.checkboxRow}
         onPress={() => setFormData({ ...formData, isKindergarten: !formData.isKindergarten })}
         activeOpacity={0.6}
+        disabled={saving}
       >
         <View style={[styles.checkbox, formData.isKindergarten && styles.checkboxChecked]}>
           {formData.isKindergarten && (
@@ -284,6 +350,7 @@ export default function ChildrenScreen() {
         onChangeText={(text) => setFormData({ ...formData, street: text })}
         placeholder="Street address"
         placeholderTextColor={colors.textSecondary}
+        editable={!saving}
       />
 
       <Text style={styles.inputLabel}>City</Text>
@@ -293,6 +360,7 @@ export default function ChildrenScreen() {
         onChangeText={(text) => setFormData({ ...formData, city: text })}
         placeholder="City"
         placeholderTextColor={colors.textSecondary}
+        editable={!saving}
       />
 
       <Text style={styles.inputLabel}>Province</Text>
@@ -302,6 +370,7 @@ export default function ChildrenScreen() {
         onChangeText={(text) => setFormData({ ...formData, province: text })}
         placeholder="Province"
         placeholderTextColor={colors.textSecondary}
+        editable={!saving}
       />
 
       <Text style={styles.inputLabel}>Postal Code</Text>
@@ -311,6 +380,7 @@ export default function ChildrenScreen() {
         onChangeText={(text) => setFormData({ ...formData, postalCode: text })}
         placeholder="A1A 1A1"
         placeholderTextColor={colors.textSecondary}
+        editable={!saving}
       />
 
       <Text style={styles.inputLabel}>Alberta Healthcare Number</Text>
@@ -320,6 +390,7 @@ export default function ChildrenScreen() {
         onChangeText={(text) => setFormData({ ...formData, albertaHealthcareNumber: text })}
         placeholder="Healthcare number"
         placeholderTextColor={colors.textSecondary}
+        editable={!saving}
       />
 
       <Text style={styles.inputLabel}>Allergies</Text>
@@ -331,6 +402,7 @@ export default function ChildrenScreen() {
         placeholderTextColor={colors.textSecondary}
         multiline
         numberOfLines={3}
+        editable={!saving}
       />
 
       <Text style={styles.inputLabel}>General Health</Text>
@@ -342,6 +414,7 @@ export default function ChildrenScreen() {
         placeholderTextColor={colors.textSecondary}
         multiline
         numberOfLines={3}
+        editable={!saving}
       />
 
       <Text style={styles.inputLabel}>Medical Notes</Text>
@@ -353,6 +426,7 @@ export default function ChildrenScreen() {
         placeholderTextColor={colors.textSecondary}
         multiline
         numberOfLines={3}
+        editable={!saving}
       />
 
       <Text style={styles.inputLabel}>Parent Notes</Text>
@@ -364,28 +438,45 @@ export default function ChildrenScreen() {
         placeholderTextColor={colors.textSecondary}
         multiline
         numberOfLines={3}
+        editable={!saving}
       />
 
       <View style={styles.modalButtons}>
         <TouchableOpacity
           style={[styles.modalButton, styles.cancelButton]}
           onPress={() => {
-            setShowAddModal(false);
-            setShowEditModal(false);
-            resetForm();
+            console.log('[ChildrenScreen] Cancel button pressed');
+            if (!saving) {
+              setShowAddModal(false);
+              setShowEditModal(false);
+              resetForm();
+            }
           }}
           activeOpacity={0.6}
+          disabled={saving}
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.modalButton, styles.saveButton]}
-          onPress={showAddModal ? handleAddChild : handleUpdateChild}
+          style={[styles.modalButton, styles.saveButton, saving && styles.buttonDisabled]}
+          onPress={() => {
+            console.log('[ChildrenScreen] Save button pressed');
+            if (showAddModal) {
+              handleAddChild();
+            } else {
+              handleUpdateChild();
+            }
+          }}
           activeOpacity={0.6}
+          disabled={saving}
         >
-          <Text style={styles.saveButtonText}>
-            {showAddModal ? 'Add Child' : 'Save Changes'}
-          </Text>
+          {saving ? (
+            <ActivityIndicator size="small" color={colors.card} />
+          ) : (
+            <Text style={styles.saveButtonText}>
+              {showAddModal ? 'Add Child' : 'Save Changes'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -643,9 +734,11 @@ export default function ChildrenScreen() {
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => {
-          setShowAddModal(false);
-          setShowEditModal(false);
-          resetForm();
+          if (!saving) {
+            setShowAddModal(false);
+            setShowEditModal(false);
+            resetForm();
+          }
         }}
       >
         <View style={styles.modalContainer}>
@@ -971,6 +1064,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 52,
   },
   cancelButton: {
     backgroundColor: colors.card,
@@ -989,5 +1084,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.card,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });

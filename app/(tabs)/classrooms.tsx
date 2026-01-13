@@ -46,6 +46,7 @@ export default function ClassroomsScreen() {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [allChildren, setAllChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedClassroom, setSelectedClassroom] = useState<Classroom | null>(null);
@@ -148,33 +149,48 @@ export default function ClassroomsScreen() {
     console.log('[Classrooms] Create button pressed');
     console.log('[Classrooms] Form data:', { newClassroomName, newClassroomCapacity, newClassroomAgeGroup, newClassroomDescription });
     
-    if (!newClassroomName.trim() || !newClassroomCapacity) {
-      console.log('[Classrooms] Validation failed - missing name or capacity');
-      Alert.alert('Error', 'Please fill in classroom name and capacity');
+    if (!newClassroomName.trim()) {
+      console.log('[Classrooms] Validation failed - missing name');
+      Alert.alert('Error', 'Please enter a classroom name');
+      return;
+    }
+
+    if (!newClassroomCapacity || parseInt(newClassroomCapacity) <= 0) {
+      console.log('[Classrooms] Validation failed - invalid capacity');
+      Alert.alert('Error', 'Please enter a valid capacity (greater than 0)');
       return;
     }
 
     try {
+      setCreating(true);
       console.log('[Classrooms] Creating classroom...');
-      // Create classroom with provided data
-      await authenticatedPost('/api/classrooms', {
-        name: newClassroomName,
+      
+      const requestBody = {
+        name: newClassroomName.trim(),
         capacity: parseInt(newClassroomCapacity),
-        ageGroup: newClassroomAgeGroup || undefined,
-        description: newClassroomDescription || undefined,
-      });
+        ageGroup: newClassroomAgeGroup.trim() || undefined,
+        description: newClassroomDescription.trim() || undefined,
+      };
+      
+      console.log('[Classrooms] Request body:', requestBody);
+      
+      await authenticatedPost('/api/classrooms', requestBody);
 
       console.log('[Classrooms] Classroom created successfully');
+      Alert.alert('Success', 'Classroom created successfully!');
+      
       setShowCreateModal(false);
       setNewClassroomName('');
       setNewClassroomCapacity('');
       setNewClassroomAgeGroup('');
       setNewClassroomDescription('');
-      loadData();
-      Alert.alert('Success', 'Classroom created successfully');
+      
+      await loadData();
     } catch (error) {
-      console.error('Error creating classroom:', error);
-      Alert.alert('Error', 'Failed to create classroom');
+      console.error('[Classrooms] Error creating classroom:', error);
+      Alert.alert('Error', 'Failed to create classroom. Please try again.');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -234,8 +250,9 @@ export default function ClassroomsScreen() {
 
   if (loading) {
     return (
-      <View style={[commonStyles.container, { paddingTop: Platform.OS === 'android' ? 48 : 0 }]}>
+      <View style={[commonStyles.container, { paddingTop: Platform.OS === 'android' ? 48 : 0, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 16, color: colors.textSecondary }}>Loading classrooms...</Text>
       </View>
     );
   }
@@ -398,7 +415,9 @@ export default function ClassroomsScreen() {
         transparent={true}
         onRequestClose={() => {
           console.log('[Classrooms] Modal close requested');
-          setShowCreateModal(false);
+          if (!creating) {
+            setShowCreateModal(false);
+          }
         }}
       >
         <View style={styles.modalOverlay}>
@@ -414,6 +433,7 @@ export default function ClassroomsScreen() {
                 console.log('[Classrooms] Name changed:', text);
                 setNewClassroomName(text);
               }}
+              editable={!creating}
             />
 
             <TextInput
@@ -426,6 +446,7 @@ export default function ClassroomsScreen() {
                 setNewClassroomCapacity(text);
               }}
               keyboardType="number-pad"
+              editable={!creating}
             />
 
             <TextInput
@@ -434,6 +455,7 @@ export default function ClassroomsScreen() {
               placeholderTextColor={colors.textSecondary}
               value={newClassroomAgeGroup}
               onChangeText={setNewClassroomAgeGroup}
+              editable={!creating}
             />
 
             <TextInput
@@ -444,6 +466,7 @@ export default function ClassroomsScreen() {
               onChangeText={setNewClassroomDescription}
               multiline
               numberOfLines={3}
+              editable={!creating}
             />
 
             <View style={styles.modalButtons}>
@@ -451,21 +474,33 @@ export default function ClassroomsScreen() {
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => {
                   console.log('[Classrooms] Cancel button pressed');
-                  setShowCreateModal(false);
+                  if (!creating) {
+                    setShowCreateModal(false);
+                    setNewClassroomName('');
+                    setNewClassroomCapacity('');
+                    setNewClassroomAgeGroup('');
+                    setNewClassroomDescription('');
+                  }
                 }}
                 activeOpacity={0.7}
+                disabled={creating}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.createButton]}
+                style={[styles.modalButton, styles.createButton, creating && styles.buttonDisabled]}
                 onPress={() => {
                   console.log('[Classrooms] Create button onPress triggered');
                   handleCreateClassroom();
                 }}
                 activeOpacity={0.7}
+                disabled={creating}
               >
-                <Text style={styles.createButtonText}>Create</Text>
+                {creating ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.createButtonText}>Create</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -745,6 +780,8 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
   },
   cancelButton: {
     backgroundColor: colors.background,
@@ -763,6 +800,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   childList: {
     maxHeight: 300,
