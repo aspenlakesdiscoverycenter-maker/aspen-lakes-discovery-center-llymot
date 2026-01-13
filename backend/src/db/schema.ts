@@ -73,6 +73,8 @@ export const children = pgTable(
     // Emergency and Family
     emergencyContacts: jsonb('emergency_contacts'),
     parentNotes: text('parent_notes'),
+    // Enrollment tracking
+    isKindergartenEnrolled: boolean('is_kindergarten_enrolled').default(false),
     enrollmentDate: timestamp('enrollment_date').defaultNow().notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -83,6 +85,7 @@ export const children = pgTable(
   (table) => [
     index('children_first_name_idx').on(table.firstName),
     index('children_last_name_idx').on(table.lastName),
+    index('children_is_kindergarten_enrolled_idx').on(table.isKindergartenEnrolled),
   ]
 );
 
@@ -461,6 +464,34 @@ export const childCheckIns = pgTable(
     index('child_check_ins_classroom_id_idx').on(table.classroomId),
     index('child_check_ins_date_idx').on(table.date),
     index('child_check_ins_check_out_time_idx').on(table.checkOutTime),
+  ]
+);
+
+/**
+ * STAFF_CLASSROOM_ASSIGNMENTS TABLE
+ * Tracks staff assignments to classrooms (many-to-many relationship)
+ * Allows staff to be assigned to one or more classrooms
+ */
+export const staffClassroomAssignments = pgTable(
+  'staff_classroom_assignments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    staffId: text('staff_id').notNull(), // References user.id
+    classroomId: uuid('classroom_id')
+      .notNull()
+      .references(() => classrooms.id, { onDelete: 'cascade' }),
+    assignedAt: timestamp('assigned_at').defaultNow().notNull(),
+    removedAt: timestamp('removed_at'), // NULL if still assigned
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('staff_classroom_assignments_staff_id_idx').on(table.staffId),
+    index('staff_classroom_assignments_classroom_id_idx').on(table.classroomId),
+    index('staff_classroom_assignments_removed_at_idx').on(table.removedAt),
   ]
 );
 
