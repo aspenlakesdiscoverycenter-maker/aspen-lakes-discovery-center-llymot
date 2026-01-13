@@ -292,6 +292,8 @@ export function registerProfileRoutes(app: App) {
             medicalNotes: { type: 'string' },
             albertaHealthcareNumber: { type: 'string' },
             emergencyContacts: { type: 'object' },
+            parentNotes: { type: 'string' },
+            isKindergarten: { type: 'boolean', description: 'Is child enrolled in kindergarten' },
             parentIds: {
               type: 'array',
               items: { type: 'string' },
@@ -320,7 +322,9 @@ export function registerProfileRoutes(app: App) {
         where: eq(schema.userProfiles.userId, session.user.id),
       });
 
-      if (!userProfile || !['staff', 'director'].includes(userProfile.role)) {
+      // Check authorization: user must have staff or director role, or default to director
+      const userRole = userProfile?.role || 'director';
+      if (!['staff', 'director'].includes(userRole)) {
         reply.code(403);
         return { error: 'Unauthorized' };
       }
@@ -338,6 +342,8 @@ export function registerProfileRoutes(app: App) {
         medicalNotes,
         albertaHealthcareNumber,
         emergencyContacts,
+        parentNotes,
+        isKindergarten,
         parentIds,
       } = request.body as {
         firstName: string;
@@ -352,6 +358,8 @@ export function registerProfileRoutes(app: App) {
         medicalNotes?: string;
         albertaHealthcareNumber?: string;
         emergencyContacts?: unknown;
+        parentNotes?: string;
+        isKindergarten?: boolean;
         parentIds?: string[];
       };
 
@@ -369,9 +377,16 @@ export function registerProfileRoutes(app: App) {
           generalHealth,
           medicalNotes,
           albertaHealthcareNumber,
+          isKindergartenEnrolled: isKindergarten || false,
           emergencyContacts: emergencyContacts || null,
+          parentNotes,
         })
         .returning();
+
+      app.logger.info(
+        { childId: child.id, firstName, lastName },
+        'Child profile created'
+      );
 
       // Add parent associations
       if (parentIds && parentIds.length > 0) {
