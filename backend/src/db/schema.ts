@@ -8,6 +8,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  numeric,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import type { user } from './auth-schema.js';
@@ -379,6 +380,118 @@ export const payments = pgTable(
 );
 
 /**
+ * CLASSROOMS TABLE
+ * Manages classrooms with capacity, age groups, and descriptions
+ */
+export const classrooms = pgTable(
+  'classrooms',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    capacity: integer('capacity').notNull(),
+    ageGroup: text('age_group'), // e.g., "2-3 years", "3-4 years", "4-5 years"
+    description: text('description'),
+    isActive: boolean('is_active').default(true),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('classrooms_name_idx').on(table.name),
+    index('classrooms_is_active_idx').on(table.isActive),
+  ]
+);
+
+/**
+ * CLASSROOM_ASSIGNMENTS TABLE
+ * Tracks which classroom each child is currently assigned to
+ */
+export const classroomAssignments = pgTable(
+  'classroom_assignments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    childId: uuid('child_id').notNull().references(() => children.id, { onDelete: 'cascade' }),
+    classroomId: uuid('classroom_id')
+      .notNull()
+      .references(() => classrooms.id, { onDelete: 'cascade' }),
+    assignedAt: timestamp('assigned_at').defaultNow().notNull(),
+    removedAt: timestamp('removed_at'), // NULL if still assigned
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('classroom_assignments_child_id_idx').on(table.childId),
+    index('classroom_assignments_classroom_id_idx').on(table.classroomId),
+    index('classroom_assignments_removed_at_idx').on(table.removedAt),
+  ]
+);
+
+/**
+ * CHILD_CHECK_INS TABLE
+ * Tracks daily check-in and check-out times for children in classrooms
+ */
+export const childCheckIns = pgTable(
+  'child_check_ins',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    childId: uuid('child_id').notNull().references(() => children.id, { onDelete: 'cascade' }),
+    classroomId: uuid('classroom_id')
+      .notNull()
+      .references(() => classrooms.id, { onDelete: 'cascade' }),
+    checkInTime: timestamp('check_in_time').notNull(),
+    checkOutTime: timestamp('check_out_time'),
+    totalHours: numeric('total_hours', { precision: 5, scale: 2 }), // Decimal hours (e.g., 7.5)
+    date: timestamp('date').notNull(), // Date for aggregation
+    checkedInBy: text('checked_in_by').notNull(), // References user.id
+    checkedOutBy: text('checked_out_by'), // References user.id
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('child_check_ins_child_id_idx').on(table.childId),
+    index('child_check_ins_classroom_id_idx').on(table.classroomId),
+    index('child_check_ins_date_idx').on(table.date),
+    index('child_check_ins_check_out_time_idx').on(table.checkOutTime),
+  ]
+);
+
+/**
+ * STAFF_ATTENDANCE TABLE
+ * Tracks daily sign-in and sign-out times for staff
+ */
+export const staffAttendance = pgTable(
+  'staff_attendance',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    staffId: text('staff_id').notNull(), // References user.id
+    signInTime: timestamp('sign_in_time').notNull(),
+    signOutTime: timestamp('sign_out_time'),
+    totalHours: numeric('total_hours', { precision: 5, scale: 2 }), // Decimal hours (e.g., 7.5)
+    date: timestamp('date').notNull(), // Date for aggregation
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('staff_attendance_staff_id_idx').on(table.staffId),
+    index('staff_attendance_date_idx').on(table.date),
+    index('staff_attendance_sign_out_time_idx').on(table.signOutTime),
+  ]
+);
+
+/**
  * TIME_OFF_REQUESTS TABLE
  * Tracks staff time-off requests with status and approval workflow
  */
@@ -533,6 +646,8 @@ export const childrenRelations = relations(children, ({ many }) => ({
   dailyReports: many(dailyReports),
   invoices: many(invoices),
   formSubmissions: many(formSubmissions),
+  classroomAssignments: many(classroomAssignments),
+  childCheckIns: many(childCheckIns),
 }));
 
 export const childParentsRelations = relations(childParents, ({ one }) => ({
@@ -624,6 +739,35 @@ export const formSubmissionsRelations = relations(formSubmissions, ({ one }) => 
     references: [children.id],
   }),
 }));
+
+export const classroomsRelations = relations(classrooms, ({ many }) => ({
+  assignments: many(classroomAssignments),
+  childCheckIns: many(childCheckIns),
+}));
+
+export const classroomAssignmentsRelations = relations(classroomAssignments, ({ one }) => ({
+  child: one(children, {
+    fields: [classroomAssignments.childId],
+    references: [children.id],
+  }),
+  classroom: one(classrooms, {
+    fields: [classroomAssignments.classroomId],
+    references: [classrooms.id],
+  }),
+}));
+
+export const childCheckInsRelations = relations(childCheckIns, ({ one }) => ({
+  child: one(children, {
+    fields: [childCheckIns.childId],
+    references: [children.id],
+  }),
+  classroom: one(classrooms, {
+    fields: [childCheckIns.classroomId],
+    references: [classrooms.id],
+  }),
+}));
+
+export const staffAttendanceRelations = relations(staffAttendance, (/* { one } */) => ({}));
 
 export const timeOffRequestsRelations = relations(timeOffRequests, ({ one }) => ({
   staffProfile: one(staffProfiles, {
