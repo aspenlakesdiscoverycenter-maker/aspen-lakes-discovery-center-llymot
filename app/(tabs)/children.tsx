@@ -28,6 +28,7 @@ interface Child {
   firstName: string;
   lastName: string;
   dateOfBirth: string;
+  isKindergarten?: boolean;
   street?: string;
   city?: string;
   province?: string;
@@ -57,6 +58,7 @@ export default function ChildrenScreen() {
     firstName: '',
     lastName: '',
     dateOfBirth: new Date().toISOString(),
+    isKindergarten: false,
     street: '',
     city: '',
     province: 'Alberta',
@@ -165,6 +167,7 @@ export default function ChildrenScreen() {
       firstName: '',
       lastName: '',
       dateOfBirth: new Date().toISOString(),
+      isKindergarten: false,
       street: '',
       city: '',
       province: 'Alberta',
@@ -182,6 +185,7 @@ export default function ChildrenScreen() {
       firstName: child.firstName,
       lastName: child.lastName,
       dateOfBirth: child.dateOfBirth,
+      isKindergarten: child.isKindergarten || false,
       street: child.street || '',
       city: child.city || '',
       province: child.province || 'Alberta',
@@ -257,6 +261,18 @@ export default function ChildrenScreen() {
           {formatDate(formData.dateOfBirth || new Date().toISOString())}
         </Text>
         <IconSymbol ios_icon_name="calendar" android_material_icon_name="calendar-today" size={20} color={colors.primary} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.checkboxRow}
+        onPress={() => setFormData({ ...formData, isKindergarten: !formData.isKindergarten })}
+      >
+        <View style={[styles.checkbox, formData.isKindergarten && styles.checkboxChecked]}>
+          {formData.isKindergarten && (
+            <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={16} color={colors.card} />
+          )}
+        </View>
+        <Text style={styles.checkboxLabel}>Enrolled in Kindergarten</Text>
       </TouchableOpacity>
 
       <Text style={styles.inputLabel}>Street Address</Text>

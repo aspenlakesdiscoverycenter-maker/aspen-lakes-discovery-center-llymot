@@ -15,13 +15,17 @@ import {
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { authenticatedGet, authenticatedPost, authenticatedPut, authenticatedDelete } from '@/utils/api';
+import { calculateAgeInMonths, calculateEffectiveRatio, formatRatio, getStatusColor } from '@/utils/ratioCalculations';
 
 interface Child {
   id: string;
   firstName: string;
   lastName: string;
+  dateOfBirth?: string;
+  isKindergarten?: boolean;
   isCheckedIn?: boolean;
   checkInTime?: string;
+  ageInMonths?: number;
 }
 
 interface Classroom {
@@ -33,6 +37,9 @@ interface Classroom {
   currentOccupancy: number;
   childrenCheckedIn: number;
   children: Child[];
+  effectiveRatio?: number;
+  isOverRatio?: boolean;
+  ratioStatus?: 'good' | 'warning' | 'critical';
 }
 
 export default function ClassroomsScreen() {
@@ -57,11 +64,44 @@ export default function ClassroomsScreen() {
       // Get all classrooms with occupancy data
       const classroomsData = await authenticatedGet<any[]>('/api/classrooms');
       
+      // Get currently signed in staff for ratio calculations
+      const staffData = await authenticatedGet<any[]>('/api/staff/currently-signed-in');
+      const staffCount = staffData.length;
+
       // Transform classrooms data to match expected format
       const transformedClassrooms: Classroom[] = await Promise.all(
         classroomsData.map(async (classroom: any) => {
           // Get detailed classroom info including children
           const detailedClassroom = await authenticatedGet<any>(`/api/classrooms/${classroom.id}`);
+          
+          const children = (detailedClassroom.children || []).map((child: any) => {
+            const ageInMonths = child.dateOfBirth ? calculateAgeInMonths(child.dateOfBirth) : undefined;
+            return {
+              id: child.id,
+              firstName: child.firstName,
+              lastName: child.lastName,
+              dateOfBirth: child.dateOfBirth,
+              isKindergarten: child.isKindergarten || false,
+              isCheckedIn: child.isCheckedIn || false,
+              checkInTime: child.checkInTime,
+              ageInMonths,
+            };
+          });
+
+          // Calculate ratio for checked-in children
+          const checkedInChildren = children.filter(c => c.isCheckedIn);
+          const { effectiveRatio } = calculateEffectiveRatio(checkedInChildren);
+          const maxAllowedChildren = staffCount * effectiveRatio;
+          const isOverRatio = checkedInChildren.length > maxAllowedChildren;
+          
+          let ratioStatus: 'good' | 'warning' | 'critical';
+          if (isOverRatio) {
+            ratioStatus = 'critical';
+          } else if (checkedInChildren.length === maxAllowedChildren) {
+            ratioStatus = 'warning';
+          } else {
+            ratioStatus = 'good';
+          }
           
           return {
             id: classroom.id,
@@ -71,13 +111,10 @@ export default function ClassroomsScreen() {
             description: classroom.description,
             currentOccupancy: classroom.currentOccupancy || 0,
             childrenCheckedIn: classroom.childrenCheckedIn || 0,
-            children: (detailedClassroom.children || []).map((child: any) => ({
-              id: child.id,
-              firstName: child.firstName,
-              lastName: child.lastName,
-              isCheckedIn: child.isCheckedIn || false,
-              checkInTime: child.checkInTime,
-            })),
+            children,
+            effectiveRatio,
+            isOverRatio,
+            ratioStatus,
           };
         })
       );
@@ -237,6 +274,19 @@ export default function ClassroomsScreen() {
                     ({classroom.childrenCheckedIn} checked in)
                   </Text>
                 </View>
+                {classroom.effectiveRatio && (
+                  <View style={styles.ratioIndicatorRow}>
+                    <Text style={styles.ratioLabel}>Ratio:</Text>
+                    <Text style={[styles.ratioValue, { color: getStatusColor(classroom.ratioStatus || 'good') }]}>
+                      {formatRatio(classroom.effectiveRatio)}
+                    </Text>
+                    {classroom.isOverRatio && (
+                      <View style={styles.overRatioBadge}>
+                        <Text style={styles.overRatioText}>OVER RATIO</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
               <IconSymbol
                 ios_icon_name={expandedClassroom === classroom.id ? "chevron.up" : "chevron.down"}
@@ -506,6 +556,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.primary,
     fontWeight: '500',
+  },
+  ratioIndicatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  ratioLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  ratioValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  overRatioBadge: {
+    backgroundColor: '#E74C3C',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  overRatioText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   classroomDetails: {
     padding: 16,

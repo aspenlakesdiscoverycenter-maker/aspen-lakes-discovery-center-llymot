@@ -25,16 +25,16 @@ export default function TabLayout() {
       label: 'Classrooms',
     },
     {
+      name: 'ratios',
+      route: '/(tabs)/ratios',
+      icon: 'group',
+      label: 'Ratios',
+    },
+    {
       name: 'attendance',
       route: '/(tabs)/attendance',
       icon: 'access-time',
       label: 'Attendance',
-    },
-    {
-      name: 'daily-reports',
-      route: '/(tabs)/daily-reports',
-      icon: 'assignment',
-      label: 'Reports',
     },
     {
       name: 'profile',
@@ -55,6 +55,7 @@ export default function TabLayout() {
         <Stack.Screen key="home" name="(home)" />
         <Stack.Screen key="children" name="children" />
         <Stack.Screen key="classrooms" name="classrooms" />
+        <Stack.Screen key="ratios" name="ratios" />
         <Stack.Screen key="attendance" name="attendance" />
         <Stack.Screen key="daily-reports" name="daily-reports" />
         <Stack.Screen key="forms" name="forms" />
