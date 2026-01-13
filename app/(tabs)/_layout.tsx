@@ -19,22 +19,22 @@ export default function TabLayout() {
       label: 'Children',
     },
     {
+      name: 'classrooms',
+      route: '/(tabs)/classrooms',
+      icon: 'meeting-room',
+      label: 'Classrooms',
+    },
+    {
+      name: 'attendance',
+      route: '/(tabs)/attendance',
+      icon: 'access-time',
+      label: 'Attendance',
+    },
+    {
       name: 'daily-reports',
       route: '/(tabs)/daily-reports',
       icon: 'assignment',
       label: 'Reports',
-    },
-    {
-      name: 'forms',
-      route: '/(tabs)/forms',
-      icon: 'description',
-      label: 'Forms',
-    },
-    {
-      name: 'time-off',
-      route: '/(tabs)/time-off',
-      icon: 'event-available',
-      label: 'Time Off',
     },
     {
       name: 'profile',
@@ -54,6 +54,8 @@ export default function TabLayout() {
       >
         <Stack.Screen key="home" name="(home)" />
         <Stack.Screen key="children" name="children" />
+        <Stack.Screen key="classrooms" name="classrooms" />
+        <Stack.Screen key="attendance" name="attendance" />
         <Stack.Screen key="daily-reports" name="daily-reports" />
         <Stack.Screen key="forms" name="forms" />
         <Stack.Screen key="time-off" name="time-off" />
@@ -62,4 +64,4 @@ export default function TabLayout() {
       <FloatingTabBar tabs={tabs} />
     </>
   );
-}
+}}
