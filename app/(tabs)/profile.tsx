@@ -13,11 +13,13 @@ export default function ProfileScreen() {
   const [clearingData, setClearingData] = useState(false);
 
   const handleSignOut = async () => {
+    console.log('[ProfileScreen] Sign out button pressed');
     await signOut();
     router.replace('/auth');
   };
 
   const handleGenerateTestData = async () => {
+    console.log('[ProfileScreen] Generate test data button pressed');
     Alert.alert(
       'Generate Test Data',
       'This will create sample children, classrooms, and staff members so you can test the app features. Continue?',
@@ -48,6 +50,7 @@ export default function ProfileScreen() {
   };
 
   const handleClearTestData = async () => {
+    console.log('[ProfileScreen] Clear test data button pressed');
     Alert.alert(
       'Clear Test Data',
       'This will delete all children, classrooms, and staff profiles. Your account will remain intact. Continue?',
@@ -60,7 +63,6 @@ export default function ProfileScreen() {
             try {
               setClearingData(true);
               console.log('[ProfileScreen] Clearing test data...');
-              // The backend endpoint is POST, not DELETE
               const response = await authenticatedPost<{ success: boolean; message: string }>('/api/test-data/clear', {});
               console.log('[ProfileScreen] Test data cleared:', response);
               Alert.alert('Success', response.message || 'Test data cleared successfully!');
@@ -92,7 +94,7 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <View style={styles.profileCard}>
             <View style={styles.avatarContainer}>
@@ -108,64 +110,13 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Account Settings</Text>
-            
-            <TouchableOpacity style={styles.menuItem}>
-              <IconSymbol 
-                ios_icon_name="person.fill" 
-                android_material_icon_name="person" 
-                size={24} 
-                color={colors.primary} 
-              />
-              <Text style={styles.menuItemText}>Edit Profile</Text>
-              <IconSymbol 
-                ios_icon_name="chevron.right" 
-                android_material_icon_name="arrow-forward" 
-                size={20} 
-                color={colors.textSecondary} 
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem}>
-              <IconSymbol 
-                ios_icon_name="bell.fill" 
-                android_material_icon_name="notifications" 
-                size={24} 
-                color={colors.primary} 
-              />
-              <Text style={styles.menuItemText}>Notifications</Text>
-              <IconSymbol 
-                ios_icon_name="chevron.right" 
-                android_material_icon_name="arrow-forward" 
-                size={20} 
-                color={colors.textSecondary} 
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem}>
-              <IconSymbol 
-                ios_icon_name="lock.fill" 
-                android_material_icon_name="lock" 
-                size={24} 
-                color={colors.primary} 
-              />
-              <Text style={styles.menuItemText}>Privacy & Security</Text>
-              <IconSymbol 
-                ios_icon_name="chevron.right" 
-                android_material_icon_name="arrow-forward" 
-                size={20} 
-                color={colors.textSecondary} 
-              />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.section}>
             <Text style={styles.sectionTitle}>Testing & Demo</Text>
             
             <TouchableOpacity 
               style={[styles.menuItem, styles.testDataButton]} 
               onPress={handleGenerateTestData}
               disabled={generatingData}
+              activeOpacity={0.7}
             >
               {generatingData ? (
                 <ActivityIndicator size="small" color={colors.primary} />
@@ -182,7 +133,7 @@ export default function ProfileScreen() {
               </Text>
               <IconSymbol 
                 ios_icon_name="chevron.right" 
-                android_material_icon_name="arrow-forward" 
+                android_material_icon_name="chevron-right" 
                 size={20} 
                 color={colors.textSecondary} 
               />
@@ -192,6 +143,7 @@ export default function ProfileScreen() {
               style={[styles.menuItem, styles.clearDataButton]} 
               onPress={handleClearTestData}
               disabled={clearingData}
+              activeOpacity={0.7}
             >
               {clearingData ? (
                 <ActivityIndicator size="small" color="#E74C3C" />
@@ -208,7 +160,71 @@ export default function ProfileScreen() {
               </Text>
               <IconSymbol 
                 ios_icon_name="chevron.right" 
-                android_material_icon_name="arrow-forward" 
+                android_material_icon_name="chevron-right" 
+                size={20} 
+                color={colors.textSecondary} 
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Account Settings</Text>
+            
+            <TouchableOpacity 
+              style={styles.menuItem}
+              activeOpacity={0.7}
+              onPress={() => console.log('Edit Profile pressed')}
+            >
+              <IconSymbol 
+                ios_icon_name="person.fill" 
+                android_material_icon_name="person" 
+                size={24} 
+                color={colors.primary} 
+              />
+              <Text style={styles.menuItemText}>Edit Profile</Text>
+              <IconSymbol 
+                ios_icon_name="chevron.right" 
+                android_material_icon_name="chevron-right" 
+                size={20} 
+                color={colors.textSecondary} 
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.menuItem}
+              activeOpacity={0.7}
+              onPress={() => console.log('Notifications pressed')}
+            >
+              <IconSymbol 
+                ios_icon_name="bell.fill" 
+                android_material_icon_name="notifications" 
+                size={24} 
+                color={colors.primary} 
+              />
+              <Text style={styles.menuItemText}>Notifications</Text>
+              <IconSymbol 
+                ios_icon_name="chevron.right" 
+                android_material_icon_name="chevron-right" 
+                size={20} 
+                color={colors.textSecondary} 
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.menuItem}
+              activeOpacity={0.7}
+              onPress={() => console.log('Privacy & Security pressed')}
+            >
+              <IconSymbol 
+                ios_icon_name="lock.fill" 
+                android_material_icon_name="lock" 
+                size={24} 
+                color={colors.primary} 
+              />
+              <Text style={styles.menuItemText}>Privacy & Security</Text>
+              <IconSymbol 
+                ios_icon_name="chevron.right" 
+                android_material_icon_name="chevron-right" 
                 size={20} 
                 color={colors.textSecondary} 
               />
@@ -218,7 +234,11 @@ export default function ProfileScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Support</Text>
             
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              activeOpacity={0.7}
+              onPress={() => console.log('Help Center pressed')}
+            >
               <IconSymbol 
                 ios_icon_name="questionmark.circle.fill" 
                 android_material_icon_name="help" 
@@ -228,13 +248,17 @@ export default function ProfileScreen() {
               <Text style={styles.menuItemText}>Help Center</Text>
               <IconSymbol 
                 ios_icon_name="chevron.right" 
-                android_material_icon_name="arrow-forward" 
+                android_material_icon_name="chevron-right" 
                 size={20} 
                 color={colors.textSecondary} 
               />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              activeOpacity={0.7}
+              onPress={() => console.log('About pressed')}
+            >
               <IconSymbol 
                 ios_icon_name="info.circle.fill" 
                 android_material_icon_name="info" 
@@ -244,14 +268,18 @@ export default function ProfileScreen() {
               <Text style={styles.menuItemText}>About</Text>
               <IconSymbol 
                 ios_icon_name="chevron.right" 
-                android_material_icon_name="arrow-forward" 
+                android_material_icon_name="chevron-right" 
                 size={20} 
                 color={colors.textSecondary} 
               />
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <TouchableOpacity 
+            style={styles.signOutButton} 
+            onPress={handleSignOut}
+            activeOpacity={0.7}
+          >
             <IconSymbol 
               ios_icon_name="arrow.right.square.fill" 
               android_material_icon_name="exit-to-app" 
@@ -306,9 +334,12 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+  },
   content: {
     padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   profileCard: {
     backgroundColor: colors.card,
@@ -351,6 +382,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: colors.border,
+    minHeight: 60,
   },
   menuItemText: {
     flex: 1,
@@ -362,10 +394,12 @@ const styles = StyleSheet.create({
   testDataButton: {
     borderColor: colors.primary,
     borderWidth: 2,
+    backgroundColor: colors.highlight,
   },
   clearDataButton: {
     borderColor: '#E74C3C',
     borderWidth: 2,
+    backgroundColor: '#FFF5F5',
   },
   signOutButton: {
     flexDirection: 'row',
@@ -375,6 +409,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginTop: 8,
+    minHeight: 56,
   },
   signOutButtonText: {
     fontSize: 16,
