@@ -14,8 +14,13 @@ export default function ProfileScreen() {
 
   const handleSignOut = async () => {
     console.log('[ProfileScreen] Sign out button pressed');
-    await signOut();
-    router.replace('/auth');
+    try {
+      await signOut();
+      router.replace('/auth');
+    } catch (error) {
+      console.error('[ProfileScreen] Sign out error:', error);
+      Alert.alert('Error', 'Failed to sign out. Please try again.');
+    }
   };
 
   const handleGenerateTestData = async () => {
@@ -113,10 +118,14 @@ export default function ProfileScreen() {
             <Text style={styles.sectionTitle}>Testing & Demo</Text>
             
             <TouchableOpacity 
-              style={[styles.menuItem, styles.testDataButton]} 
+              style={[
+                styles.menuItem, 
+                styles.testDataButton,
+                generatingData && styles.buttonDisabled
+              ]} 
               onPress={handleGenerateTestData}
               disabled={generatingData}
-              activeOpacity={0.7}
+              activeOpacity={0.6}
             >
               {generatingData ? (
                 <ActivityIndicator size="small" color={colors.primary} />
@@ -131,19 +140,25 @@ export default function ProfileScreen() {
               <Text style={styles.menuItemText}>
                 {generatingData ? 'Generating...' : 'Generate Test Data'}
               </Text>
-              <IconSymbol 
-                ios_icon_name="chevron.right" 
-                android_material_icon_name="chevron-right" 
-                size={20} 
-                color={colors.textSecondary} 
-              />
+              {!generatingData && (
+                <IconSymbol 
+                  ios_icon_name="chevron.right" 
+                  android_material_icon_name="chevron-right" 
+                  size={20} 
+                  color={colors.textSecondary} 
+                />
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.menuItem, styles.clearDataButton]} 
+              style={[
+                styles.menuItem, 
+                styles.clearDataButton,
+                clearingData && styles.buttonDisabled
+              ]} 
               onPress={handleClearTestData}
               disabled={clearingData}
-              activeOpacity={0.7}
+              activeOpacity={0.6}
             >
               {clearingData ? (
                 <ActivityIndicator size="small" color="#E74C3C" />
@@ -158,12 +173,14 @@ export default function ProfileScreen() {
               <Text style={[styles.menuItemText, { color: '#E74C3C' }]}>
                 {clearingData ? 'Clearing...' : 'Clear Test Data'}
               </Text>
-              <IconSymbol 
-                ios_icon_name="chevron.right" 
-                android_material_icon_name="chevron-right" 
-                size={20} 
-                color={colors.textSecondary} 
-              />
+              {!clearingData && (
+                <IconSymbol 
+                  ios_icon_name="chevron.right" 
+                  android_material_icon_name="chevron-right" 
+                  size={20} 
+                  color={colors.textSecondary} 
+                />
+              )}
             </TouchableOpacity>
           </View>
 
@@ -172,8 +189,11 @@ export default function ProfileScreen() {
             
             <TouchableOpacity 
               style={styles.menuItem}
-              activeOpacity={0.7}
-              onPress={() => console.log('Edit Profile pressed')}
+              activeOpacity={0.6}
+              onPress={() => {
+                console.log('Edit Profile pressed');
+                Alert.alert('Coming Soon', 'Edit Profile feature will be available soon!');
+              }}
             >
               <IconSymbol 
                 ios_icon_name="person.fill" 
@@ -192,8 +212,11 @@ export default function ProfileScreen() {
 
             <TouchableOpacity 
               style={styles.menuItem}
-              activeOpacity={0.7}
-              onPress={() => console.log('Notifications pressed')}
+              activeOpacity={0.6}
+              onPress={() => {
+                console.log('Notifications pressed');
+                Alert.alert('Coming Soon', 'Notifications settings will be available soon!');
+              }}
             >
               <IconSymbol 
                 ios_icon_name="bell.fill" 
@@ -212,8 +235,11 @@ export default function ProfileScreen() {
 
             <TouchableOpacity 
               style={styles.menuItem}
-              activeOpacity={0.7}
-              onPress={() => console.log('Privacy & Security pressed')}
+              activeOpacity={0.6}
+              onPress={() => {
+                console.log('Privacy & Security pressed');
+                Alert.alert('Coming Soon', 'Privacy & Security settings will be available soon!');
+              }}
             >
               <IconSymbol 
                 ios_icon_name="lock.fill" 
@@ -236,8 +262,11 @@ export default function ProfileScreen() {
             
             <TouchableOpacity 
               style={styles.menuItem}
-              activeOpacity={0.7}
-              onPress={() => console.log('Help Center pressed')}
+              activeOpacity={0.6}
+              onPress={() => {
+                console.log('Help Center pressed');
+                Alert.alert('Help Center', 'For support, please contact us at support@aspenlakes.com');
+              }}
             >
               <IconSymbol 
                 ios_icon_name="questionmark.circle.fill" 
@@ -256,8 +285,11 @@ export default function ProfileScreen() {
 
             <TouchableOpacity 
               style={styles.menuItem}
-              activeOpacity={0.7}
-              onPress={() => console.log('About pressed')}
+              activeOpacity={0.6}
+              onPress={() => {
+                console.log('About pressed');
+                Alert.alert('About', 'Aspen Lakes Discovery Center\nVersion 1.0.0\n\nA comprehensive daycare management app.');
+              }}
             >
               <IconSymbol 
                 ios_icon_name="info.circle.fill" 
@@ -278,7 +310,7 @@ export default function ProfileScreen() {
           <TouchableOpacity 
             style={styles.signOutButton} 
             onPress={handleSignOut}
-            activeOpacity={0.7}
+            activeOpacity={0.6}
           >
             <IconSymbol 
               ios_icon_name="arrow.right.square.fill" 
@@ -400,6 +432,9 @@ const styles = StyleSheet.create({
     borderColor: '#E74C3C',
     borderWidth: 2,
     backgroundColor: '#FFF5F5',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   signOutButton: {
     flexDirection: 'row',

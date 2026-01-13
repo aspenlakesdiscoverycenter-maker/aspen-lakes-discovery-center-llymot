@@ -256,6 +256,7 @@ export default function ChildrenScreen() {
       <TouchableOpacity
         style={styles.dateButton}
         onPress={() => setShowDatePicker(true)}
+        activeOpacity={0.6}
       >
         <Text style={styles.dateButtonText}>
           {formatDate(formData.dateOfBirth || new Date().toISOString())}
@@ -266,6 +267,7 @@ export default function ChildrenScreen() {
       <TouchableOpacity
         style={styles.checkboxRow}
         onPress={() => setFormData({ ...formData, isKindergarten: !formData.isKindergarten })}
+        activeOpacity={0.6}
       >
         <View style={[styles.checkbox, formData.isKindergarten && styles.checkboxChecked]}>
           {formData.isKindergarten && (
@@ -372,12 +374,14 @@ export default function ChildrenScreen() {
             setShowEditModal(false);
             resetForm();
           }}
+          activeOpacity={0.6}
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.modalButton, styles.saveButton]}
           onPress={showAddModal ? handleAddChild : handleUpdateChild}
+          activeOpacity={0.6}
         >
           <Text style={styles.saveButtonText}>
             {showAddModal ? 'Add Child' : 'Save Changes'}
@@ -409,6 +413,7 @@ export default function ChildrenScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => setSelectedChild(null)}
+            activeOpacity={0.6}
           >
             <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow-back" size={24} color={colors.primary} />
             <Text style={styles.backButtonText}>Back</Text>
@@ -416,6 +421,7 @@ export default function ChildrenScreen() {
           <TouchableOpacity
             style={styles.editButton}
             onPress={() => openEditModal(selectedChild)}
+            activeOpacity={0.6}
           >
             <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.primary} />
           </TouchableOpacity>
@@ -533,6 +539,7 @@ export default function ChildrenScreen() {
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={() => handleDeleteChild(selectedChild.id)}
+              activeOpacity={0.6}
             >
               <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color={colors.card} />
               <Text style={styles.deleteButtonText}>Delete Profile</Text>
@@ -557,9 +564,11 @@ export default function ChildrenScreen() {
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => {
+            console.log('[ChildrenScreen] Add button pressed');
             resetForm();
             setShowAddModal(true);
           }}
+          activeOpacity={0.6}
         >
           <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={24} color={colors.card} />
         </TouchableOpacity>
@@ -577,7 +586,11 @@ export default function ChildrenScreen() {
               <TouchableOpacity
                 key={child.id}
                 style={styles.childCard}
-                onPress={() => loadChildDetails(child.id)}
+                onPress={() => {
+                  console.log('[ChildrenScreen] Child card pressed:', child.id);
+                  loadChildDetails(child.id);
+                }}
+                activeOpacity={0.6}
               >
                 <View style={styles.childCardContent}>
                   <IconSymbol 
