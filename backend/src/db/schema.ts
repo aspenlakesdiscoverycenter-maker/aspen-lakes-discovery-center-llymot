@@ -308,6 +308,94 @@ export const payments = pgTable(
 );
 
 /**
+ * TIME_OFF_REQUESTS TABLE
+ * Tracks staff time-off requests with status and approval workflow
+ */
+export const timeOffRequests = pgTable(
+  'time_off_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    staffId: text('staff_id').notNull(), // References user.id
+    startDate: timestamp('start_date').notNull(),
+    endDate: timestamp('end_date').notNull(),
+    daysRequested: integer('days_requested').notNull(), // Can be partial: 5, 2.5, etc (stored as integer * 10)
+    type: text('type', {
+      enum: ['vacation', 'sick', 'unpaid'],
+    }).notNull(),
+    reason: text('reason'),
+    notes: text('notes'),
+    status: text('status', {
+      enum: ['pending', 'approved', 'denied', 'cancelled'],
+    }).default('pending'),
+    approvedBy: text('approved_by'), // References user.id (director who approved)
+    approvalDate: timestamp('approval_date'),
+    approvalNotes: text('approval_notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('time_off_requests_staff_id_idx').on(table.staffId),
+    index('time_off_requests_status_idx').on(table.status),
+    index('time_off_requests_start_date_idx').on(table.startDate),
+  ]
+);
+
+/**
+ * TIME_OFF_BALANCES TABLE
+ * Tracks annual time-off balances for each staff member
+ * One record per staff member per year
+ */
+export const timeOffBalances = pgTable(
+  'time_off_balances',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    staffId: text('staff_id').notNull(), // References user.id
+    year: integer('year').notNull(),
+    vacationDaysAllotted: integer('vacation_days_allotted').notNull(), // Stored as value * 10 for half-day support
+    vacationDaysUsed: integer('vacation_days_used').default(0).notNull(),
+    sickDaysAllotted: integer('sick_days_allotted').notNull(), // Fixed at 10 per year
+    sickDaysUsed: integer('sick_days_used').default(0).notNull(),
+    unpaidDaysUsed: integer('unpaid_days_used').default(0).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('time_off_balances_staff_id_idx').on(table.staffId),
+    index('time_off_balances_year_idx').on(table.year),
+    uniqueIndex('time_off_balances_unique_idx').on(table.staffId, table.year),
+  ]
+);
+
+/**
+ * STAFF_PROFILES TABLE
+ * Additional staff-specific information (hire date, etc.)
+ * Extended from userProfiles
+ */
+export const staffProfiles = pgTable(
+  'staff_profiles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull().unique().references(() => userProfiles.userId),
+    hireDate: timestamp('hire_date').notNull(),
+    employmentStatus: text('employment_status', {
+      enum: ['active', 'on_leave', 'terminated'],
+    }).default('active'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index('staff_profiles_user_id_idx').on(table.userId)]
+);
+
+/**
  * FORMS TABLE
  * Online forms created by the center for parents to fill out
  */
@@ -448,4 +536,23 @@ export const formSubmissionsRelations = relations(formSubmissions, ({ one }) => 
     fields: [formSubmissions.childId],
     references: [children.id],
   }),
+}));
+
+export const timeOffRequestsRelations = relations(timeOffRequests, ({ one }) => ({
+  staffProfile: one(staffProfiles, {
+    fields: [timeOffRequests.staffId],
+    references: [staffProfiles.userId],
+  }),
+}));
+
+export const timeOffBalancesRelations = relations(timeOffBalances, ({ one }) => ({
+  staffProfile: one(staffProfiles, {
+    fields: [timeOffBalances.staffId],
+    references: [staffProfiles.userId],
+  }),
+}));
+
+export const staffProfilesRelations = relations(staffProfiles, ({ many }) => ({
+  timeOffRequests: many(timeOffRequests),
+  timeOffBalances: many(timeOffBalances),
 }));

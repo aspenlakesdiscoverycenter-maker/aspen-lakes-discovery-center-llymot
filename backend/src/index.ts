@@ -3,6 +3,7 @@ import * as appSchema from './db/schema.js';
 import * as authSchema from './db/auth-schema.js';
 import { registerParentRoutes } from './routes/parent.js';
 import { registerStaffRoutes } from './routes/staff.js';
+import { registerTimeOffRoutes } from './routes/timeoff.js';
 
 // Combine schemas
 const schema = { ...appSchema, ...authSchema };
@@ -20,6 +21,7 @@ app.withAuth();
 // IMPORTANT: Always use registration functions to avoid circular dependency issues
 registerParentRoutes(app);
 registerStaffRoutes(app);
+registerTimeOffRoutes(app);
 
 await app.run();
 app.logger.info('Application running');
