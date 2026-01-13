@@ -10,6 +10,7 @@ import { registerDailyReportRoutes } from './routes/dailyreports.js';
 import { registerEnhancedDailyReportRoutes } from './routes/dailyreports-enhanced.js';
 import { registerClassroomRoutes } from './routes/classrooms.js';
 import { registerRatioRoutes } from './routes/ratio.js';
+import { registerTestDataRoutes } from './routes/test-data.js';
 
 // Combine schemas
 const schema = { ...appSchema, ...authSchema };
@@ -34,6 +35,7 @@ registerDailyReportRoutes(app);
 registerEnhancedDailyReportRoutes(app);
 registerClassroomRoutes(app);
 registerRatioRoutes(app);
+registerTestDataRoutes(app);
 
 await app.run();
 app.logger.info('Application running');
