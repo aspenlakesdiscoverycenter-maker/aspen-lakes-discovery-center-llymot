@@ -1,17 +1,75 @@
 
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, Alert, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import { authenticatedPost, authenticatedDelete } from '@/utils/api';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const [generatingData, setGeneratingData] = useState(false);
+  const [clearingData, setClearingData] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
     router.replace('/auth');
+  };
+
+  const handleGenerateTestData = async () => {
+    Alert.alert(
+      'Generate Test Data',
+      'This will create sample children, classrooms, and staff members so you can test the app features. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Generate',
+          onPress: async () => {
+            try {
+              setGeneratingData(true);
+              console.log('[ProfileScreen] Generating test data...');
+              const response = await authenticatedPost<{ success: boolean; message: string }>('/api/test-data/generate', {});
+              console.log('[ProfileScreen] Test data generated:', response);
+              Alert.alert('Success', response.message || 'Test data generated successfully! Check the Children, Classrooms, and Attendance tabs.');
+            } catch (error) {
+              console.error('[ProfileScreen] Error generating test data:', error);
+              Alert.alert('Error', 'Failed to generate test data. Please try again.');
+            } finally {
+              setGeneratingData(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearTestData = async () => {
+    Alert.alert(
+      'Clear Test Data',
+      'This will delete all children, classrooms, and staff profiles. Your account will remain intact. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setClearingData(true);
+              console.log('[ProfileScreen] Clearing test data...');
+              const response = await authenticatedDelete<{ success: boolean; message: string }>('/api/test-data/clear');
+              console.log('[ProfileScreen] Test data cleared:', response);
+              Alert.alert('Success', response.message || 'Test data cleared successfully!');
+            } catch (error) {
+              console.error('[ProfileScreen] Error clearing test data:', error);
+              Alert.alert('Error', 'Failed to clear test data. Please try again.');
+            } finally {
+              setClearingData(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -88,6 +146,62 @@ export default function ProfileScreen() {
                 color={colors.primary} 
               />
               <Text style={styles.menuItemText}>Privacy & Security</Text>
+              <IconSymbol 
+                ios_icon_name="chevron.right" 
+                android_material_icon_name="arrow-forward" 
+                size={20} 
+                color={colors.textSecondary} 
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Testing & Demo</Text>
+            
+            <TouchableOpacity 
+              style={[styles.menuItem, styles.testDataButton]} 
+              onPress={handleGenerateTestData}
+              disabled={generatingData}
+            >
+              {generatingData ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <IconSymbol 
+                  ios_icon_name="wand.and.stars" 
+                  android_material_icon_name="auto-fix-high" 
+                  size={24} 
+                  color={colors.primary} 
+                />
+              )}
+              <Text style={styles.menuItemText}>
+                {generatingData ? 'Generating...' : 'Generate Test Data'}
+              </Text>
+              <IconSymbol 
+                ios_icon_name="chevron.right" 
+                android_material_icon_name="arrow-forward" 
+                size={20} 
+                color={colors.textSecondary} 
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.menuItem, styles.clearDataButton]} 
+              onPress={handleClearTestData}
+              disabled={clearingData}
+            >
+              {clearingData ? (
+                <ActivityIndicator size="small" color="#E74C3C" />
+              ) : (
+                <IconSymbol 
+                  ios_icon_name="trash.fill" 
+                  android_material_icon_name="delete" 
+                  size={24} 
+                  color="#E74C3C" 
+                />
+              )}
+              <Text style={[styles.menuItemText, { color: '#E74C3C' }]}>
+                {clearingData ? 'Clearing...' : 'Clear Test Data'}
+              </Text>
               <IconSymbol 
                 ios_icon_name="chevron.right" 
                 android_material_icon_name="arrow-forward" 
@@ -240,6 +354,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginLeft: 12,
     fontWeight: '500',
+  },
+  testDataButton: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
+  clearDataButton: {
+    borderColor: '#E74C3C',
+    borderWidth: 2,
   },
   signOutButton: {
     flexDirection: 'row',
