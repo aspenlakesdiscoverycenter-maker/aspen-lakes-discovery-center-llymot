@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Platform, Alert, Image } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -68,31 +68,7 @@ export default function HomeScreen() {
   // Change this to 'parent' to see parent view
   const userRole = 'staff';
 
-  useEffect(() => {
-    if (!authLoading && user) {
-      loadData();
-    } else if (!authLoading && !user) {
-      router.replace('/auth');
-    }
-  }, [user, authLoading]);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      if (userRole === 'parent') {
-        await loadParentData();
-      } else {
-        await loadStaffData();
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      Alert.alert('Error', 'Failed to load data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadParentData = async () => {
+  const loadParentData = useCallback(async () => {
     try {
       console.log('[HomeScreen] Loading parent data...');
       
@@ -110,7 +86,7 @@ export default function HomeScreen() {
       console.error('[HomeScreen] Error loading parent data:', error);
       throw error;
     }
-  };
+  }, []);
 
   const loadChildData = async (childId: string) => {
     try {
@@ -135,7 +111,7 @@ export default function HomeScreen() {
     }
   };
 
-  const loadStaffData = async () => {
+  const loadStaffData = useCallback(async () => {
     try {
       console.log('[HomeScreen] Loading staff data...');
       
@@ -158,7 +134,31 @@ export default function HomeScreen() {
       console.error('[HomeScreen] Error loading staff data:', error);
       throw error;
     }
-  };
+  }, []);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (userRole === 'parent') {
+        await loadParentData();
+      } else {
+        await loadStaffData();
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      Alert.alert('Error', 'Failed to load data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [userRole, loadParentData, loadStaffData]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      loadData();
+    } else if (!authLoading && !user) {
+      router.replace('/auth');
+    }
+  }, [user, authLoading, loadData]);
 
   const onRefresh = async () => {
     setRefreshing(true);

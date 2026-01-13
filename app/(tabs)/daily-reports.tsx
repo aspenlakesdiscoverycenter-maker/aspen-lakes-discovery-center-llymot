@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Platform, Alert, Image, TextInput, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -153,27 +153,7 @@ export default function DailyReportsScreen() {
     videos: [],
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      if (userRole === 'staff') {
-        await loadStaffData();
-      } else {
-        await loadParentData();
-      }
-    } catch (error) {
-      console.error('[DailyReports] Error loading data:', error);
-      Alert.alert('Error', 'Failed to load daily reports. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadStaffData = async () => {
+  const loadStaffData = useCallback(async () => {
     try {
       console.log('[DailyReports] Loading staff daily reports...');
       const reportsData = await authenticatedGet<DailyReport[]>('/api/staff/daily-reports');
@@ -187,9 +167,9 @@ export default function DailyReportsScreen() {
       console.error('[DailyReports] Error loading staff data:', error);
       throw error;
     }
-  };
+  }, []);
 
-  const loadParentData = async () => {
+  const loadParentData = useCallback(async () => {
     try {
       console.log('[DailyReports] Loading parent daily reports...');
       const reportsData = await authenticatedGet<DailyReport[]>('/api/parent/daily-reports');
@@ -199,7 +179,27 @@ export default function DailyReportsScreen() {
       console.error('[DailyReports] Error loading parent data:', error);
       throw error;
     }
-  };
+  }, []);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (userRole === 'staff') {
+        await loadStaffData();
+      } else {
+        await loadParentData();
+      }
+    } catch (error) {
+      console.error('[DailyReports] Error loading data:', error);
+      Alert.alert('Error', 'Failed to load daily reports. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [userRole, loadStaffData, loadParentData]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();

@@ -64,4 +64,4 @@ export default function TabLayout() {
       <FloatingTabBar tabs={tabs} />
     </>
   );
-}}
+}

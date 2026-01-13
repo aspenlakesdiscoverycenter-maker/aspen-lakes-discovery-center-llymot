@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Platform, Alert, Image, TextInput, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -61,27 +61,7 @@ export default function FormsScreen() {
   // Hardcoded role for now - in production this would come from user context
   const userRole = 'staff'; // or 'parent'
 
-  useEffect(() => {
-    loadData();
-  }, [activeTab]);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      if (activeTab === 'forms') {
-        await loadForms();
-      } else {
-        await loadSubmissions();
-      }
-    } catch (error) {
-      console.error('[FormsScreen] Error loading data:', error);
-      Alert.alert('Error', 'Failed to load data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadForms = async () => {
+  const loadForms = useCallback(async () => {
     try {
       console.log('[FormsScreen] Loading forms...');
       // Use the correct endpoint based on user role
@@ -93,9 +73,9 @@ export default function FormsScreen() {
       console.error('[FormsScreen] Error loading forms:', error);
       throw error;
     }
-  };
+  }, [userRole]);
 
-  const loadSubmissions = async () => {
+  const loadSubmissions = useCallback(async () => {
     try {
       console.log('[FormsScreen] Loading submissions...');
       // For parents, get their own submissions
@@ -124,7 +104,27 @@ export default function FormsScreen() {
       console.error('[FormsScreen] Error loading submissions:', error);
       throw error;
     }
-  };
+  }, [userRole, forms]);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (activeTab === 'forms') {
+        await loadForms();
+      } else {
+        await loadSubmissions();
+      }
+    } catch (error) {
+      console.error('[FormsScreen] Error loading data:', error);
+      Alert.alert('Error', 'Failed to load data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab, loadForms, loadSubmissions]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleCreateForm = async () => {
     if (!formTitle || formFields.length === 0) {
